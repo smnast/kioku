@@ -15,7 +15,6 @@ class GymEnvironment(Environment):
 
     Attributes:
         _environment (gym.Env): The gymnasium environment.
-        _seed (int): The seed for the environment.
     """
 
     def __init__(self, environment_name: str, render_mode: str = None) -> None:

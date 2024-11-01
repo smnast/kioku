@@ -7,7 +7,7 @@ This file contains the implementation of the DQN agent.
 from agents.agent import Agent
 from utils.transition import Transition
 from memory.experience_replay_buffer import ExperienceReplayBuffer
-from components.double_q import DoubleQ
+from functions.double_q import DoubleQ
 import torch
 import torch.nn.functional as F
 import numpy as np
@@ -36,12 +36,12 @@ class DQNAgent(Agent):
         self,
         observation_size: int,
         num_actions: int,
-        hidden_sizes: list[int] = [32, 32],
+        hidden_sizes: list[int] = [256, 128, 32],
         learning_rate: Scheduler = StaticScheduler(1e-2, 0),
-        epsilon: Scheduler = ExponentialDecayScheduler(1, 0.01, 5000, 0),
+        epsilon: Scheduler = ExponentialDecayScheduler(1, 0.01, 10000, 0),
         gamma: float = 0.99,
         transition_rate: float = 0.005,
-        memory_size: int = 5000,
+        memory_size: int = 10000,
         batch_size: int = 32,
     ) -> None:
         """
