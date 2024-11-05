@@ -58,6 +58,8 @@ class ExponentialDecayScheduler(Scheduler):
         # If in test mode, return the test value, otherwise return the decayed value
         if self._test_mode:
             return self._test_value
+        if step >= self._time:
+            return self._end
         return self._begin * (self._end / self._begin) ** (step / self._time)
 
     def train(self) -> None:

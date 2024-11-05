@@ -1,12 +1,14 @@
 """
 dqn_agent.py
 
-This file contains the implementation of the DQN agent.
+This file contains the implementation of the DQN agent with a PER buffer.
 """
 
 from agents.agent import Agent
 from utils.transition import Transition
-from memory.experience_replay_buffer import ExperienceReplayBuffer
+from memory.prioritized_experience_replay_buffer import (
+    PrioritizedExperienceReplayBuffer,
+)
 from functions.double_q import DoubleQ
 import torch
 import torch.nn.functional as F
@@ -17,9 +19,9 @@ from schedulers.static_scheduler import StaticScheduler
 from loggers.logger import Logger
 
 
-class DQNAgent(Agent):
+class DQNPERAgent(Agent):
     """
-    A Deep Q-Network (DQN) agent.
+    A Deep Q-Network (DQN) agent using a Prioritized Experience Replay (PER) buffer.
 
     Attributes:
         _epsilon (Scheduler): The probability of taking a random action (exploration).
@@ -43,6 +45,9 @@ class DQNAgent(Agent):
         transition_rate: float = 0.005,
         memory_size: int = 5000,
         batch_size: int = 32,
+        alpha: float = 0.4,
+        beta: Scheduler = ExponentialDecayScheduler(0.6, 1.0, 5000),
+        buffer_epsilon: float = 1e-3,
     ) -> None:
         """
         Initialize the DQN agent.
@@ -71,7 +76,9 @@ class DQNAgent(Agent):
         self._num_actions = num_actions
 
         self._batch_size = batch_size
-        self._memory = ExperienceReplayBuffer(memory_size, batch_size)
+        self._memory = PrioritizedExperienceReplayBuffer(
+            memory_size, batch_size, alpha, beta, buffer_epsilon
+        )
         self._relevant_keys = [
             "observation",
             "action",
@@ -124,7 +131,12 @@ class DQNAgent(Agent):
             transition (Transition): The transition to process.
         """
         transition = transition.filter(*self._relevant_keys)
-        self._memory.store(transition)
+
+        # Compute TD error of transition
+        td_error, _, _ = self._compute_td_error(transition)
+
+        # Store the transition in the memory buffer with its TD error
+        self._memory.store(transition, td_error.item())
 
     def learn(self) -> None:
         """
@@ -134,8 +146,51 @@ class DQNAgent(Agent):
             return
 
         # Get the batch of transitions
-        batch_transition = self._memory.sample()
-        observation, action, reward, next_observation, done = batch_transition[
+        batch_transition, sampling_weights, buffer_indices = self._memory.sample(
+            self._step
+        )
+
+        # Compute TD error and loss
+        td_error, current_q_values, target_q_values = self._compute_td_error(
+            batch_transition
+        )
+        sampling_weights = torch.tensor(sampling_weights, dtype=torch.float32)
+        q_loss = (torch.square(td_error) * sampling_weights).mean()
+
+        # Optimize the model
+        self._model.optimize(q_loss, self._step)
+
+        # Update the priorities in the memory buffer
+        for batch_index, buffer_index in enumerate(buffer_indices):
+            self._memory.update(buffer_index, td_error[batch_index].item())
+
+        # Log the learning process
+        Logger.log_scalar("dqn_agent/loss", q_loss.item())
+        Logger.log_scalar("dqn_agent/pred_q_value/max", current_q_values.max().item())
+        Logger.log_scalar("dqn_agent/pred_q_value/min", current_q_values.min().item())
+        Logger.log_scalar("dqn_agent/pred_q_value/mean", current_q_values.mean().item())
+        Logger.log_scalar("dqn_agent/target_q_value/max", target_q_values.max().item())
+        Logger.log_scalar("dqn_agent/target_q_value/min", target_q_values.min().item())
+        Logger.log_scalar(
+            "dqn_agent/target_q_value/mean", target_q_values.mean().item()
+        )
+        Logger.log_scalar("dqn_per_agent/sampling_weights/max", sampling_weights.max())
+        Logger.log_scalar("dqn_per_agent/sampling_weights/min", sampling_weights.min())
+        Logger.log_scalar("dqn_per_agent/sampling_weights/mean", sampling_weights.mean())
+
+    def _compute_td_error(
+        self, transition: Transition
+    ) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
+        """
+        Compute the TD error for a transition or batch of transitions.
+
+        Args:
+            transition (Transition): The transition.
+        Returns:
+            tuple[torch.Tensor, torch.Tensor, torch.Tensor]: The TD error, current q values, and target q values.
+        """
+        # Unpack the transition
+        observation, action, reward, next_observation, done = transition[
             *self._relevant_keys
         ]
 
@@ -148,31 +203,18 @@ class DQNAgent(Agent):
 
         # Compute the target q value
         target_q_values = (
-            self._model.predict(next_observation, target=True).max(dim=1).values
+            self._model.predict(next_observation, target=True).max(dim=-1).values
         )
-        target_q_values = reward.squeeze(dim=1) + self._gamma * target_q_values * (
-            1 - done.squeeze(dim=1)
+        target_q_values = reward.squeeze(dim=-1) + self._gamma * target_q_values * (
+            1 - done.squeeze(dim=-1)
         )
 
         # Compute the current q value
         current_q_values = self._model.predict(observation)
-        current_q_values = current_q_values.gather(1, action).squeeze(dim=1)
+        current_q_values = current_q_values.gather(dim=-1, index=action).squeeze(dim=-1)
 
-        # Train the model
-        q_loss = F.mse_loss(current_q_values, target_q_values)
-
-        self._model.optimize(q_loss, self._step)
-
-        # Log the learning process
-        Logger.log_scalar("dqn_agent/loss", q_loss.item())
-        Logger.log_scalar("dqn_agent/pred_q_value/max", current_q_values.max().item())
-        Logger.log_scalar("dqn_agent/pred_q_value/min", current_q_values.min().item())
-        Logger.log_scalar("dqn_agent/pred_q_value/mean", current_q_values.mean().item())
-        Logger.log_scalar("dqn_agent/target_q_value/max", target_q_values.max().item())
-        Logger.log_scalar("dqn_agent/target_q_value/min", target_q_values.min().item())
-        Logger.log_scalar(
-            "dqn_agent/target_q_value/mean", target_q_values.mean().item()
-        )
+        # Compute TD error
+        return target_q_values - current_q_values, current_q_values, target_q_values
 
     def train(self) -> None:
         """

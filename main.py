@@ -4,26 +4,27 @@ main.py
 This module contains the main script that trains and tests the agent.
 """
 
-from environments.visual_gym_environment import VisualGymEnvironment
+from environments.gym_environment import GymEnvironment
+from agents.dqn_per_agent import DQNPERAgent
 from agents.dqn_agent import DQNAgent
 from trainers.trainer import Trainer
 import torch
 import numpy as np
 
 # Set the random seed
-seed = 42
+seed = 12844452
 np.random.seed(seed)
 torch.manual_seed(seed)
 
 # Create the environment
-env = VisualGymEnvironment("CartPole-v1")
+env = GymEnvironment("CartPole-v1")
 
 # Create the agent
-agent = DQNAgent(512, 2)
+agent = DQNPERAgent(4, 2)
 
 # Train the agent
 trainer = Trainer(agent, env)
-trainer.train(10000)
+trainer.train(5000)
 
 # Test the agent
 tester = Trainer(agent, env)

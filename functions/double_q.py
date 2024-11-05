@@ -90,6 +90,13 @@ class DoubleQ:
         # Log the learning rate
         Logger.log_scalar("double_q/learning_rate", self._learning_rate.value(step))
 
+        # Log the gradients
+        avg_gradient = 0
+        for param in self._online_network.parameters():
+            avg_gradient += param.grad.abs().mean()
+        avg_gradient /= len(list(self._online_network.parameters()))
+        Logger.log_scalar("double_q/gradient", avg_gradient)
+
     def train(self) -> None:
         """
         Sets the Double Q network to training mode.

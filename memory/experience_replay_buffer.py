@@ -8,6 +8,7 @@ import numpy as np
 from utils.transition import Transition
 from loggers.logger import Logger
 
+
 class ExperienceReplayBuffer:
     """
     A class used to represent an Experience Replay Buffer.
@@ -43,7 +44,7 @@ class ExperienceReplayBuffer:
             transition (Transition): The transition to store.
         """
         self._data[self._data_index] = transition
-        self._advance_pointer()
+        self._advance_index()
 
         # Log the current buffer size
         Logger.log_scalar("experience_replay_buffer/buffer_size", len(self))
@@ -77,7 +78,7 @@ class ExperienceReplayBuffer:
         """
         return len(self) >= self._batch_size
 
-    def _advance_pointer(self) -> None:
+    def _advance_index(self) -> None:
         """
         Advance the data index pointer by one.
 
