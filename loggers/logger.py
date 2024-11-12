@@ -23,7 +23,7 @@ class Logger:
     _step_dict = {}
 
     @classmethod
-    def get_logger_instance(cls, log_dir=".logs/dqn"):
+    def get_logger_instance(cls, log_dir=".logs/kioku"):
         """
         Returns the instance of the logger. If the instance does not exist, it creates a new instance.
 

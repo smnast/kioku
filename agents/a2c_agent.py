@@ -12,7 +12,6 @@ from agents.agent import Agent
 from memory.n_step_buffer import NStepBuffer
 from functions.discrete_actor import DiscreteActor
 from functions.value import Value
-from functions.double_value import DoubleValue
 from schedulers.scheduler import Scheduler
 from schedulers.static_scheduler import StaticScheduler
 from utils.transition import Transition
@@ -42,12 +41,13 @@ class A2CAgent(Agent):
         num_actions: int,
         actor_hidden_sizes: list[int] = [128, 128],
         critic_hidden_sizes: list[int] = [128, 128],
-        learning_rate: Scheduler = StaticScheduler(1e-3, 0),
+        actor_learning_rate: Scheduler = StaticScheduler(7e-4, 0),
+        critic_learning_rate: Scheduler = StaticScheduler(7e-4, 0),
         critic_coefficient: float = 0.5,
         normalize_advantages: bool = False,
-        gamma: float = 0.98,
+        gamma: float = 0.995,
         lambda_: float = 0.95,
-        n_steps: int = 5,
+        n_steps: int = 20,
     ) -> None:
         """
         Initialize the A2C agent.
@@ -57,7 +57,8 @@ class A2CAgent(Agent):
             num_actions (int): The number of actions in the action space.
             actor_hidden_sizes (list[int]): The sizes of the hidden layers for the actor network.
             critic_hidden_sizes (list[int]): The sizes of the hidden layers for the critic network.
-            learning_rate (Scheduler): The learning rate of the optimizer.
+            actor_learning_rate (Scheduler): The learning rate of the actor's optimizer.
+            critic_learning_rate (Scheduler): The learning rate of the critic's optimizer.
             critic_coefficient (float): The coefficient for the critic loss.
             normalize_advantages (bool): Whether to normalize the advantages.
             gamma (float): The discount factor for future rewards.
@@ -68,10 +69,10 @@ class A2CAgent(Agent):
             observation_size,
             num_actions,
             actor_hidden_sizes,
-            learning_rate=learning_rate,
+            learning_rate=actor_learning_rate,
         )
         self._critic = Value(
-            observation_size, 1, critic_hidden_sizes, learning_rate=learning_rate
+            observation_size, 1, critic_hidden_sizes, learning_rate=critic_learning_rate
         )
 
         self._n_steps = n_steps
