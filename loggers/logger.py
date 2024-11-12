@@ -34,7 +34,7 @@ class Logger:
         """
         if cls._logger_instance is None:
             # Create a unique log directory for each run based on the current time
-            unique_log_dir = os.path.join(log_dir, time.strftime("%m-%d_%H:%M"))
+            unique_log_dir = os.path.join(log_dir, time.strftime("%m-%d_%H:%M:%S"))
             cls._logger_instance = SummaryWriter(unique_log_dir)
         return cls._logger_instance
 
@@ -48,12 +48,12 @@ class Logger:
             value (float): The scalar value to log.
         """
         logger = cls.get_logger_instance()
-        
+
         # Increment the step for the given tag
         if tag not in cls._step_dict:
             cls._step_dict[tag] = 0
         cls._step_dict[tag] += 1
-        
+
         # Log the scalar value with the current step
         logger.add_scalar(tag, value, cls._step_dict[tag])
 
