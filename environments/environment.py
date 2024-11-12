@@ -5,6 +5,11 @@ import numpy as np
 class Environment(ABC):
     """
     Abstract base class for an environment.
+
+    Attributes:
+        action_size (int): The number of actions that can be taken.
+        observation_size (int): The dimension of the observation space.
+        continuous (bool): Whether the environment has a continuous action space.
     """
 
     @abstractmethod
@@ -18,7 +23,7 @@ class Environment(ABC):
         pass
 
     @abstractmethod
-    def step(self, action: int) -> tuple[np.ndarray, ...]:
+    def step(self, action: np.ndarray) -> tuple[np.ndarray, ...]:
         """
         Takes a step in the environment.
 
@@ -26,6 +31,31 @@ class Environment(ABC):
             action (int): The action to take.
 
         Returns:
-            tuple[np.ndarray, float, bool, bool]: The observation, reward, done flag, and truncated flag.
+            tuple[np.ndarray, ...]: The observation, reward, done flag, and truncated flag.
+        """
+        pass
+
+    @property
+    @abstractmethod
+    def action_size(self) -> int:
+        """
+        For discrete environments: The number of actions that can be taken.\\
+        For continuous environment: The dimension of the action space.
+        """
+        pass
+
+    @property
+    @abstractmethod
+    def observation_size(self) -> int:
+        """
+        The dimension of the observation space.
+        """
+        pass
+
+    @property
+    @abstractmethod
+    def continuous(self) -> bool:
+        """
+        Whether the environment has a continuous action space.
         """
         pass

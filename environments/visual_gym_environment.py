@@ -12,6 +12,7 @@ from environments.gym_environment import GymEnvironment
 from vision.feature_extractor import FeatureExtractor
 import cv2
 
+
 class VisualGymEnvironment(Environment):
     """
     Wrapper for the visual gymnasium environment.
@@ -19,6 +20,9 @@ class VisualGymEnvironment(Environment):
     This class actually wraps an instance of the GymEnvironment class.
 
     Attributes:
+        action_size (int): The number of actions that can be taken.
+        observation_size (int): The dimension of the observation space.
+        continuous (bool): Whether the environment has a continuous action space.
         _environment_wrapper (GymEnvironment): The gymnasium environment wrapper.
         _feature_extractor (FeatureExtractor): The feature extractor to use.
         _prev_view (np.ndarray): The previous view of the environment.
@@ -33,7 +37,11 @@ class VisualGymEnvironment(Environment):
             environment_name (str): The name of the environment.
             render (bool): Whether to render the environment in a window.
         """
-        self._environment_wrapper = GymEnvironment(environment_name, render_mode='rgb_array')
+        # Create the gym environment
+        self._environment_wrapper = GymEnvironment(
+            environment_name, render_mode="rgb_array"
+        )
+
         self._feature_extractor = FeatureExtractor()
         self._prev_view = None
         self._render = render
@@ -59,7 +67,12 @@ class VisualGymEnvironment(Environment):
         Returns:
             tuple[np.ndarray, ...]: The observation, reward, done flag, and info.
         """
-        _, reward, done, truncated, = self._environment_wrapper.step(action)
+        (
+            _,
+            reward,
+            done,
+            truncated,
+        ) = self._environment_wrapper.step(action)
         return self._get_features(), reward, done, truncated
 
     def _get_features(self) -> np.ndarray:
@@ -92,7 +105,7 @@ class VisualGymEnvironment(Environment):
         """
         # Normalize the view
         view = view / 255.0
-        
+
         # Convert the view to a tensor with format (C, H, W)
         view = torch.tensor(view, dtype=torch.float32)
         view = view.permute(2, 0, 1)
@@ -111,7 +124,19 @@ class VisualGymEnvironment(Environment):
             view_np = cv2.cvtColor(view_np, cv2.COLOR_RGB2BGR)
 
             # Display the image using OpenCV
-            cv2.imshow('Environment View', view_np)
+            cv2.imshow("Environment View", view_np)
             cv2.waitKey(1)
 
         return avg_view
+
+    @property
+    def action_size(self) -> int:
+        return self._environment_wrapper.action_size
+
+    @property
+    def observation_size(self) -> int:
+        return self._environment_wrapper.observation_size
+
+    @property
+    def continuous(self) -> bool:
+        return self._environment_wrapper.continuous
