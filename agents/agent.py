@@ -4,9 +4,10 @@ agent.py
 This file defines the abstract base class for agents.
 """
 
-from abc import ABC, abstractmethod
+import torch
 import numpy as np
 from utils.transition import Transition
+from abc import ABC, abstractmethod
 
 
 class Agent(ABC):
@@ -15,15 +16,18 @@ class Agent(ABC):
     """
 
     @abstractmethod
-    def act(self, observation: np.ndarray) -> np.ndarray:
+    def act(
+        self, observation: np.ndarray, state: dict[str, np.ndarray] = None
+    ) -> tuple[np.ndarray, dict[str, np.ndarray]]:
         """
         Choose an action based on the current observation.
 
         Args:
             observation (np.ndarray): The current observation.
+            state (torch.Tensor): The inner state of the agent.
 
         Returns:
-            np.ndarray: The action to take.
+            tuple[np.ndarray, dict[str, np.ndarray]]: The action to take, and the new state of the agent.
         """
         pass
 

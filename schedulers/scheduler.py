@@ -4,6 +4,7 @@ scheduler.py
 This file contains the abstract class for a scheduler.
 """
 
+import torch
 from abc import ABC, abstractmethod
 
 
@@ -38,3 +39,14 @@ class Scheduler:
         Set the scheduler to testing mode.
         """
         pass
+
+    def adjust(self, optimizer: torch.optim.Optimizer, step: int) -> None:
+        """
+        Adjust the learning rate of the optimizer using the scheduler.
+
+        Args:
+            optimizer (torch.optim.Optimizer): The optimizer to adjust.
+            step (int): The current step.
+        """
+        for param_group in optimizer.param_groups:
+            param_group["lr"] = self.value(step)

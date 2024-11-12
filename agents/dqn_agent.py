@@ -7,7 +7,7 @@ This file contains the implementation of the DQN agent.
 from agents.agent import Agent
 from utils.transition import Transition
 from memory.experience_replay_buffer import ExperienceReplayBuffer
-from functions.double_q import DoubleQ
+from functions.double_value import DoubleValue
 import torch
 import torch.nn.functional as F
 import numpy as np
@@ -61,7 +61,7 @@ class DQNAgent(Agent):
         self._epsilon = epsilon
         self._gamma = gamma
 
-        self._model = DoubleQ(
+        self._model = DoubleValue(
             input_size=observation_size,
             output_size=num_actions,
             hidden_sizes=hidden_sizes,
@@ -82,15 +82,18 @@ class DQNAgent(Agent):
 
         self._step = 0
 
-    def act(self, observation: np.ndarray) -> int:
+    def act(
+        self, observation: np.ndarray, state: dict[str, np.ndarray] = None
+    ) -> tuple[np.ndarray, dict[str, np.ndarray]]:
         """
         Choose an action based on the current observation.
 
         Args:
             observation (np.ndarray): The current observation.
+            state (dict[str, np.ndarray]): The state of the agent.
 
         Returns:
-            int: The action to take.
+            tuple[np.ndarray, dict[str, np.ndarray]]: The action to take, and the new state of the agent.
         """
         # Update the current step
         self._step += 1
@@ -114,7 +117,7 @@ class DQNAgent(Agent):
         # Log the epsilon value
         Logger.log_scalar("dqn_agent/epsilon", epsilon_value)
 
-        return chosen_action
+        return chosen_action, state
 
     def process_transition(self, transition: Transition) -> None:
         """

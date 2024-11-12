@@ -29,7 +29,7 @@ class MLP(nn.Module):
             output_size (int): The size of the output layer.
             hidden_sizes (list[int]): The sizes of the hidden layers.
         """
-        super(MLP, self).__init__()
+        super().__init__()
 
         # Define the layer sizes of the ntire network
         layer_sizes = [input_size] + hidden_sizes + [output_size]

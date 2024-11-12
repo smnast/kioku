@@ -10,6 +10,7 @@ from utils.transition import Transition
 from typing import Any
 from loggers.logger import Logger
 
+
 class Trainer:
     """
     The Trainer class trains an agent on a given environment.
@@ -42,21 +43,23 @@ class Trainer:
 
         episode_complete = False
         episode_reward = 0
-        for step in range(1, num_steps+1):
+        for step in range(1, num_steps + 1):
             if episode_complete or step == 1:
                 # Reset the environment
                 observation = self._environment.reset()
+                agent_state = {}
 
             if episode_complete:
                 # Log the total reward for the episode
                 Logger.log_scalar("train/episode_reward", episode_reward)
 
                 # Reset the episode stats
+                print(episode_reward)
                 episode_complete = False
                 episode_reward = 0
 
             # Take a step in the environment
-            action = self._agent.act(observation)
+            action, agent_state = self._agent.act(observation, agent_state)
             next_observation, reward, done, truncated = self._environment.step(action)
 
             # Process transition
@@ -66,6 +69,7 @@ class Trainer:
                 reward=reward,
                 next_observation=next_observation,
                 done=done,
+                **agent_state
             )
             self._agent.process_transition(transition)
 
@@ -102,6 +106,7 @@ class Trainer:
         for _ in range(num_episodes):
             # Reset the environment
             observation = self._environment.reset()
+            agent_state = {}
 
             # Initialize the episode stats
             episode_complete = False
@@ -110,7 +115,7 @@ class Trainer:
             # Run the episode
             while not episode_complete:
                 # Take a step in the environment
-                action = self._agent.act(observation)
+                action, agent_state = self._agent.act(observation, agent_state)
                 next_observation, reward, done, truncated = self._environment.step(
                     action
                 )
