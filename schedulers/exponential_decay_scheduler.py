@@ -40,7 +40,7 @@ class ExponentialDecayScheduler(Scheduler):
         self._test_mode = False
         
         # If an explicit test value is provided, use it. Otherwise, default to the end value.
-        if test_value:
+        if test_value is not None:
             self._test_value = test_value
         else:
             self._test_value = self._end
