@@ -1,31 +1,29 @@
-"""
-door_environment.py
-
-Provides a reinforcement learning environment where an agent must choose the correct door after a series of steps.
-"""
-
 import numpy as np
 from environments.environment import Environment
 
 
 class DoorEnvironment(Environment):
-    """
-    DoorEnvironment is a reinforcement learning environment where an agent must choose the correct door 
-    after a series of steps. The environment provides observations, rewards, and handles the episode 
-    termination logic.
+    """A reinforcement learning environment where an agent must choose the correct door after a
+    series of steps.
+
+    The environment provides observations and rewards, and handles episode termination. The agent
+    must choose the correct door after the correct door is flashed for a given number of steps.
 
     Attributes:
-        action_size (int): The number of actions that can be taken.
-        observation_size (int): The dimension of the observation space.
-        continuous (bool): Whether the environment has a continuous action space.
-        _num_doors (int): Number of doors in the environment.
-        _flash_steps (int): Number of steps during which the correct door is flashed.
-        _reward_delay (int): Delay in steps before the agent can receive a reward for choosing the correct door.
-        _print_observation (bool): Flag to print the observation at each step.
-        _max_steps (int): Maximum number of steps in an episode.
-        _chosen_door (int): The door chosen by the environment.
-        _step (int): Current step in the episode.
+        action_size (int): The number of actions available to the agent.
+        observation_size (int): The dimensionality of the observation space.
+        continuous (bool): Whether the action space is continuous. Always False for this
+            environment.
+        _num_doors (int): The number of doors in the environment.
+        _flash_steps (int): The number of steps during which the correct door is flashed.
+        _reward_delay (int): The number of steps to wait before the agent can receive a reward for
+            choosing the correct door.
+        _print_observation (bool): If True, prints the observation at each step.
+        _max_steps (int): The maximum number of steps allowed in an episode.
+        _chosen_door (int): The door chosen by the environment to be correct.
+        _step (int): The current step number within the episode.
     """
+
     def __init__(
         self,
         num_doors: int = 10,
@@ -33,6 +31,15 @@ class DoorEnvironment(Environment):
         reward_delay: int = 10,
         print_observation: bool = False,
     ) -> None:
+        """Initializes the environment with the given parameters.
+
+        Args:
+            num_doors (int): The number of doors in the environment.
+            flash_steps (int): The number of steps the correct door will be flashed.
+            reward_delay (int): The delay (in steps) before the agent can receive a reward for
+                choosing the correct door.
+            print_observation (bool): If True, the observation will be printed at each step.
+        """
         self._num_doors = num_doors
         self._flash_steps = flash_steps
         self._reward_delay = reward_delay
@@ -40,20 +47,41 @@ class DoorEnvironment(Environment):
         self._max_steps = 30
 
     def reset(self) -> np.ndarray:
+        """Resets the environment to the initial state and returns the initial observation.
+
+        The correct door is chosen randomly, and the observation vector is initialized with a 1 at
+            the correct door.
+
+        Returns:
+            np.ndarray: The initial observation (one-hot encoded vector with a 1 at the correct
+                door).
+        """
         self._chosen_door = np.random.randint(0, self._num_doors)
         observation = np.zeros(self._num_doors, dtype=np.float32)
         observation[self._chosen_door] = 1
 
-        # Print the observation
+        # Print the observation if enabled
         if self._print_observation:
-            print(f'observation: {observation}')
+            print(f"observation: {observation}")
 
         self._step = 0
-
         return observation
 
-    def step(self, action: np.ndarray) -> tuple[np.ndarray, ...]:
-        # Increase step counter
+    def step(
+        self, action: np.ndarray
+    ) -> tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
+        """Executes one step in the environment based on the given action.
+
+        Args:
+            action (np.ndarray): The action taken by the agent (index of the chosen door).
+
+        Returns:
+            tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]: A tuple containing:
+                - The next observation (np.ndarray),
+                - The reward (np.ndarray),
+                - Whether the episode is done (np.ndarray),
+                - Whether the episode was truncated (np.ndarray).
+        """
         self._step += 1
 
         # Update the observation
@@ -61,12 +89,11 @@ class DoorEnvironment(Environment):
         if self._step < self._flash_steps:
             observation[self._chosen_door] = 1
 
-        # Print the observation
+        # Print the observation if enabled
         if self._print_observation:
-            print(f'observation: {observation}, action: {action}')
+            print(f"observation: {observation}, action: {action}")
 
-        # Give the agent a positive reward for choosing the correct door after the delay
-        # Otherwise, if the agent acted, give a negative reward
+        # Determine reward
         reward = np.array([0], dtype=np.float32)
         chosen_door = action.item()
         if chosen_door != 0:
@@ -78,7 +105,7 @@ class DoorEnvironment(Environment):
             else:
                 reward -= 1
 
-        # Truncate the episode if the maximum number of steps is reached
+        # Check if the episode is done or truncated
         done = np.array([0], dtype=bool)
         truncated = np.array([int(self._step >= self._max_steps)], dtype=bool)
 
@@ -86,12 +113,27 @@ class DoorEnvironment(Environment):
 
     @property
     def action_size(self) -> int:
+        """Returns the number of actions available to the agent.
+
+        Returns:
+            int: The number of actions (number of doors + 1 for the "no action" case).
+        """
         return self._num_doors + 1
 
     @property
     def observation_size(self) -> int:
+        """Returns the dimensionality of the observation space.
+
+        Returns:
+            int: The size of the observation space (number of doors).
+        """
         return self._num_doors
 
     @property
     def continuous(self) -> bool:
+        """Returns whether the action space is continuous.
+
+        Returns:
+            bool: Always False, as the action space is discrete in this environment.
+        """
         return False

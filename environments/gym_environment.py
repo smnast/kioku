@@ -7,12 +7,10 @@ Provides a wrapper for the a gymnasium environment to be interacted with by an a
 from environments.environment import Environment
 import gymnasium as gym
 import numpy as np
-from typing import Optional
 
 
 class GymEnvironment(Environment):
-    """
-    Wrapper for the gymnasium environment.
+    """Wrapper for the gymnasium environment.
 
     Attributes:
         action_size (int): The number of actions that can be taken.
@@ -21,11 +19,8 @@ class GymEnvironment(Environment):
         _environment (gym.Env): The gymnasium environment.
     """
 
-    def __init__(
-        self, environment_name: str, render_mode: Optional[str] = None
-    ) -> None:
-        """
-        Initializes the given environment
+    def __init__(self, environment_name: str, render_mode: str | None = None) -> None:
+        """Initializes the given environment
 
         Args:
             environment_name (str): The name of the environment.
@@ -34,8 +29,7 @@ class GymEnvironment(Environment):
         self._environment = gym.make(environment_name, render_mode=render_mode)
 
     def reset(self) -> np.ndarray:
-        """
-        Resets the environment.
+        """Resets the environment.
 
         Returns:
             np.ndarray: The initial state of the environment.
@@ -45,15 +39,20 @@ class GymEnvironment(Environment):
         observation, _ = self._environment.reset(seed=random_seed)
         return observation
 
-    def step(self, action: np.ndarray) -> tuple[np.ndarray, ...]:
-        """
-        Takes a step in the environment.
+    def step(
+        self, action: np.ndarray
+    ) -> tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
+        """Takes a step in the environment.
 
         Args:
             action (int): The action to take.
 
         Returns:
-            tuple[np.ndarray, ...]: The observation, reward, done flag, and info.
+            tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]: A tuple containing:
+                - The next observation (np.ndarray),
+                - The reward (np.ndarray),
+                - Whether the episode is done (np.ndarray),
+                - Whether the episode was truncated (np.ndarray).
         """
         # Retrieve the action from the numpy array
         action = action.item()

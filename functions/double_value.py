@@ -14,8 +14,7 @@ from loggers.logger import Logger
 
 
 class DoubleValue:
-    """
-    A simple Double Value network.
+    """A simple Double Value network.
 
     This network could be used for the Q and V functions, or any other value function.
 
@@ -23,8 +22,12 @@ class DoubleValue:
         _online_network (MLP): The online network.
         _target_network (MLP): The target network.
         _optimizer (optim.Adam): The optimizer.
-        _transition_rate (float): The rate at which the target network transitions to the online network.
-        _gradient_clipping (float): The maximum gradient norm for clipping.
+        _transition_rate (float): The rate at which the target network transitions to the online
+
+
+        Args:
+            target_network (MLP): The target network to update.
+            online_network (MLP): The online network to transition from.
     """
 
     def __init__(
@@ -36,14 +39,14 @@ class DoubleValue:
         transition_rate: float = 0.005,
         gradient_clipping: float = 0.5,
     ) -> None:
-        """
-        Initializes the Double Value network.
+        """Initializes the Double Value network.
 
         Args:
             input_size (int): The size of the input tensor.
             output_size (int): The size of the output tensor.
             learning_rate (Scheduler): The learning rate of the optimizer.
-            transition_rate (float): The rate at which the target network transitions to the online network.
+            transition_rate (float): The rate at which the target network transitions to the online
+                network.
         """
         self._online_network = MLP(input_size, output_size, hidden_sizes)
         self._target_network = MLP(input_size, output_size, hidden_sizes)
@@ -58,8 +61,7 @@ class DoubleValue:
         self._gradient_clipping = gradient_clipping
 
     def predict(self, x: torch.Tensor, target: bool = False) -> torch.Tensor:
-        """
-        Defines the value prediction of the Double Value network.
+        """Defines the value prediction of the Double Value network.
 
         Args:
             x (torch.Tensor): The input tensor.
@@ -73,8 +75,7 @@ class DoubleValue:
         return self._online_network(x)
 
     def optimize(self, loss: torch.Tensor, step: int) -> None:
-        """
-        Optimize the Double Value network.
+        """Optimize the Double Value network.
 
         Args:
             loss (torch.Tensor): The loss tensor to backpropagate.
@@ -105,9 +106,7 @@ class DoubleValue:
         Logger.log_scalar("double_value/gradient", avg_gradient)
 
     def _update_target_network(self) -> None:
-        """
-        Updates the target network with the online network's parameters.
-        """
+        """Updates the target network with the online network's parameters."""
         target_state_dict = self._target_network.state_dict()
         online_state_dict = self._online_network.state_dict()
         for key in target_state_dict:
@@ -118,23 +117,17 @@ class DoubleValue:
         self._target_network.load_state_dict(target_state_dict)
 
     def _copy_online_to_target(self) -> None:
-        """
-        Copies the online network's parameters to the target network.
-        """
+        """Copies the online network's parameters to the target network."""
         self._target_network.load_state_dict(self._online_network.state_dict())
 
     def train(self) -> None:
-        """
-        Sets the Double Value network to training mode.
-        """
+        """Sets the Double Value network to training mode."""
         self._online_network.train()
         self._target_network.train()
         self._learning_rate.train()
 
     def test(self) -> None:
-        """
-        Sets the Double Value network to evaluation mode.
-        """
+        """Sets the Double Value network to evaluation mode."""
         self._online_network.eval()
         self._target_network.eval()
         self._learning_rate.test()

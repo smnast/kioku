@@ -13,8 +13,7 @@ from loggers.logger import Logger
 
 
 class Value:
-    """
-    A simple single-network value function approximator.
+    """A simple single-network value function approximator.
 
     This network is typically used for value functions in policy gradient methods like A2C.
 
@@ -33,8 +32,7 @@ class Value:
         learning_rate: Scheduler = StaticScheduler(3e-4),
         gradient_clipping: float = 0.5,
     ) -> None:
-        """
-        Initializes the Value network.
+        """Initializes the Value network.
 
         Args:
             input_size (int): The size of the input tensor.
@@ -50,8 +48,7 @@ class Value:
         self._gradient_clipping = gradient_clipping
 
     def predict(self, x: torch.Tensor) -> torch.Tensor:
-        """
-        Computes the value estimate for a given input.
+        """Computes the value estimate for a given input.
 
         Args:
             x (torch.Tensor): The input tensor.
@@ -62,8 +59,7 @@ class Value:
         return self._network(x)
 
     def optimize(self, loss: torch.Tensor, step: int) -> None:
-        """
-        Optimizes the Value network.
+        """Optimizes the Value network.
 
         Args:
             loss (torch.Tensor): The loss tensor to backpropagate.
@@ -90,15 +86,11 @@ class Value:
         Logger.log_scalar("value/gradient", avg_gradient)
 
     def train(self) -> None:
-        """
-        Sets the Value network to training mode.
-        """
+        """Sets the Value network to training mode."""
         self._network.train()
         self._learning_rate.train()
 
     def test(self) -> None:
-        """
-        Sets the Value network to evaluation mode.
-        """
+        """Sets the Value network to evaluation mode."""
         self._network.eval()
         self._learning_rate.test()

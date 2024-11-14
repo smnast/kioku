@@ -23,7 +23,9 @@ class Environment(ABC):
         pass
 
     @abstractmethod
-    def step(self, action: np.ndarray) -> tuple[np.ndarray, ...]:
+    def step(
+        self, action: np.ndarray
+    ) -> tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
         """
         Takes a step in the environment.
 
@@ -31,31 +33,30 @@ class Environment(ABC):
             action (int): The action to take.
 
         Returns:
-            tuple[np.ndarray, ...]: The observation, reward, done flag, and truncated flag.
+            tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]: A tuple containing:
+                - The next observation (np.ndarray),
+                - The reward (np.ndarray),
+                - Whether the episode is done (np.ndarray),
+                - Whether the episode was truncated (np.ndarray).
         """
         pass
 
     @property
     @abstractmethod
     def action_size(self) -> int:
-        """
-        For discrete environments: The number of actions that can be taken.\\
-        For continuous environment: The dimension of the action space.
+        """For discrete environments: The number of actions that can be taken.
+        For continuous environments: The dimension of the action space.
         """
         pass
 
     @property
     @abstractmethod
     def observation_size(self) -> int:
-        """
-        The dimension of the observation space.
-        """
+        """The dimension of the observation space."""
         pass
 
     @property
     @abstractmethod
     def continuous(self) -> bool:
-        """
-        Whether the environment has a continuous action space.
-        """
+        """Whether the environment has a continuous action space."""
         pass

@@ -10,8 +10,7 @@ from loggers.logger import Logger
 
 
 class ExperienceReplayBuffer:
-    """
-    A class used to represent an Experience Replay Buffer.
+    """A class used to represent an Experience Replay Buffer.
 
     Attributes:
         _max_size (int): The maximum size of the buffer.
@@ -21,8 +20,7 @@ class ExperienceReplayBuffer:
     """
 
     def __init__(self, max_size: int = 1000000, batch_size: int = 32) -> None:
-        """
-        Initializes the Experience Replay Buffer.
+        """Initializes the Experience Replay Buffer.
 
         Args:
             max_size (int): The maximum size of the buffer.
@@ -37,8 +35,7 @@ class ExperienceReplayBuffer:
         self._data = np.empty(max_size, dtype=Transition)
 
     def store(self, transition: Transition) -> None:
-        """
-        Stores a transition in the buffer.
+        """Stores a transition in the buffer.
 
         Args:
             transition (Transition): The transition to store.
@@ -50,9 +47,11 @@ class ExperienceReplayBuffer:
         Logger.log_scalar("experience_replay_buffer/buffer_size", len(self))
 
     def sample(self) -> Transition:
-        """
-        Samples a batch of transitions from the buffer.
+        """Samples a batch of transitions from the buffer.
 
+        Raises:
+            ValueError: If the buffer does not have enough transitions to sample a full batch.
+        
         Returns:
             Transition: A batch of transitions with combined data.
         """
@@ -70,8 +69,7 @@ class ExperienceReplayBuffer:
         return batch_transition
 
     def can_sample(self) -> bool:
-        """
-        Checks if the buffer has enough transitions to sample a full batch.
+        """Checks if the buffer has enough transitions to sample a full batch.
 
         Returns:
             bool: Whether the buffer has enough transitions to sample a full batch.
@@ -79,8 +77,7 @@ class ExperienceReplayBuffer:
         return len(self) >= self._batch_size
 
     def _advance_index(self) -> None:
-        """
-        Advance the data index pointer by one.
+        """Advance the data index pointer by one.
 
         This is a circular buffer:
         if the pointer exceeds the maximum size, reset it to 0 and set the buffer to full.

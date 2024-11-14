@@ -14,8 +14,7 @@ import cv2
 
 
 class VisualGymEnvironment(Environment):
-    """
-    Wrapper for the visual gymnasium environment.
+    """Wrapper for the visual gymnasium environment.
 
     This class actually wraps an instance of the GymEnvironment class.
 
@@ -30,8 +29,7 @@ class VisualGymEnvironment(Environment):
     """
 
     def __init__(self, environment_name: str, render: bool = False) -> None:
-        """
-        Initializes the given environment
+        """Initializes the given environment
 
         Args:
             environment_name (str): The name of the environment.
@@ -47,8 +45,7 @@ class VisualGymEnvironment(Environment):
         self._render = render
 
     def reset(self) -> np.ndarray:
-        """
-        Resets the environment.
+        """Resets the environment.
 
         Returns:
             np.ndarray: The initial state of the environment.
@@ -57,15 +54,20 @@ class VisualGymEnvironment(Environment):
         self._prev_view = None
         return self._get_features()
 
-    def step(self, action: np.ndarray) -> tuple[np.ndarray, ...]:
-        """
-        Takes a step in the environment.
+    def step(
+        self, action: np.ndarray
+    ) -> tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
+        """Takes a step in the environment.
 
         Args:
             action (int): The action to take.
 
         Returns:
-            tuple[np.ndarray, ...]: The observation, reward, done flag, and info.
+            tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]: A tuple containing:
+                - The next observation (np.ndarray),
+                - The reward (np.ndarray),
+                - Whether the episode is done (np.ndarray),
+                - Whether the episode was truncated (np.ndarray).
         """
         (
             _,
@@ -76,8 +78,7 @@ class VisualGymEnvironment(Environment):
         return self._get_features(), reward, done, truncated
 
     def _get_features(self) -> np.ndarray:
-        """
-        Gets the features from the current view of the environment.
+        """Gets the features from the current view of the environment.
 
         Returns:
             np.ndarray: The feature vector representing the view.
@@ -95,11 +96,11 @@ class VisualGymEnvironment(Environment):
         return features
 
     def _transform(self, view: np.ndarray) -> torch.Tensor:
-        """
-        Transform the view to a tensor suitable for the feature extractor.
+        """Transform the view to a tensor suitable for the feature extractor.
 
         Args:
             view (np.ndarray): The view to transform.
+
         Returns:
             torch.Tensor: The transformed view.
         """

@@ -6,7 +6,7 @@ that combines two value networks, each with a critic, and takes the minimum of t
 """
 
 import torch
-from torch import nn, optim
+from torch import optim
 from models.mlp import MLP
 from schedulers.scheduler import Scheduler
 from schedulers.static_scheduler import StaticScheduler
@@ -14,8 +14,9 @@ from loggers.logger import Logger
 
 
 class MinDoubleValue:
-    """
-    A class that creates two networks and takes the minimum of their outputs for a value function.
+    """A class that creates two networks and takes the minimum of their outputs for a value
+        function.
+
     It manages the optimization of both networks and their target network transitions.
 
     Attributes:
@@ -39,8 +40,7 @@ class MinDoubleValue:
         transition_rate: float = 0.005,
         gradient_clipping: float = 0.5,
     ) -> None:
-        """
-        Initializes the MinDoubleValue network with two networks (online and target for each).
+        """Initializes the MinDoubleValue network with two networks (online and target for each).
 
         Args:
             input_size (int): The size of the input tensor.
@@ -72,8 +72,7 @@ class MinDoubleValue:
         self._gradient_clipping = gradient_clipping
 
     def predict(self, x: torch.Tensor, target: bool = False) -> torch.Tensor:
-        """
-        Predicts the minimum value from both networks.
+        """Predicts the minimum value from both networks.
 
         Args:
             x (torch.Tensor): The input tensor.
@@ -95,8 +94,7 @@ class MinDoubleValue:
         return torch.min(pred_1, pred_2)
 
     def optimize(self, loss: torch.Tensor, step: int) -> None:
-        """
-        Optimizes both networks with respect to the given loss.
+        """Optimizes both networks with respect to the given loss.
 
         Args:
             loss (torch.Tensor): The loss to backpropagate.
@@ -136,9 +134,7 @@ class MinDoubleValue:
         Logger.log_scalar("min_double_value/gradient_2", avg_gradient_2)
 
     def _update_target_network(self) -> None:
-        """
-        Updates the target networks with a weighted average of online networks' parameters.
-        """
+        """Updates the target networks with a weighted average of online networks' parameters."""
         self._update_target_network_params(
             self._target_network_1, self._online_network_1
         )
@@ -149,6 +145,12 @@ class MinDoubleValue:
     def _update_target_network_params(
         self, target_network: MLP, online_network: MLP
     ) -> None:
+        """Updates the target network with a weighted average of online network's parameters.
+
+        Args:
+            target_network (MLP): The target network to update.
+            online_network (MLP): The online network to transition from.
+        """
         target_state_dict = target_network.state_dict()
         online_state_dict = online_network.state_dict()
         for key in target_state_dict:
@@ -159,16 +161,12 @@ class MinDoubleValue:
         target_network.load_state_dict(target_state_dict)
 
     def _copy_online_to_target(self) -> None:
-        """
-        Copies the online networks' parameters to the target networks.
-        """
+        """Copies the online networks' parameters to the target networks."""
         self._target_network_1.load_state_dict(self._online_network_1.state_dict())
         self._target_network_2.load_state_dict(self._online_network_2.state_dict())
 
     def train(self) -> None:
-        """
-        Sets both online and target networks to training mode.
-        """
+        """Sets both online and target networks to training mode."""
         self._online_network_1.train()
         self._online_network_2.train()
         self._target_network_1.train()
@@ -176,9 +174,7 @@ class MinDoubleValue:
         self._learning_rate.train()
 
     def test(self) -> None:
-        """
-        Sets both online and target networks to evaluation mode.
-        """
+        """Sets both online and target networks to evaluation mode."""
         self._online_network_1.eval()
         self._online_network_2.eval()
         self._target_network_1.eval()

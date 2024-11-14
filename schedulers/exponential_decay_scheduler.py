@@ -1,7 +1,8 @@
 """
 exponential_decay_scheduler.py
 
-This file contains the implementation of the exponential decay scheduler, which is used to decay a value exponentially over time.
+This file contains the implementation of the exponential decay scheduler, which decays a value
+exponentially over time.
 """
 
 import numpy as np
@@ -9,8 +10,7 @@ from schedulers.scheduler import Scheduler
 
 
 class ExponentialDecayScheduler(Scheduler):
-    """
-    An exponential decay scheduler.
+    """An exponential decay scheduler.
 
     Attributes:
         _begin (float): The initial value of the decay.
@@ -23,8 +23,7 @@ class ExponentialDecayScheduler(Scheduler):
     def __init__(
         self, begin: float, end: float, time: float, test_value: float = None
     ) -> None:
-        """
-        Initialize the exponential decay scheduler.
+        """Initialize the exponential decay scheduler.
 
         Args:
             begin (float): The initial value of the decay.
@@ -40,14 +39,10 @@ class ExponentialDecayScheduler(Scheduler):
         self._test_mode = False
         
         # If an explicit test value is provided, use it. Otherwise, default to the end value.
-        if test_value is not None:
-            self._test_value = test_value
-        else:
-            self._test_value = self._end
+        self._test_value = self._end if test_value is None else test_value
 
     def value(self, step: int) -> float:
-        """
-        Get the value of the decay at a given step.
+        """Get the value of the decay at a given step.
 
         Args:
             step (int): The current step.
@@ -63,13 +58,9 @@ class ExponentialDecayScheduler(Scheduler):
         return self._begin * (self._end / self._begin) ** (step / self._time)
 
     def train(self) -> None:
-        """
-        Set the scheduler to training mode.
-        """
+        """Set the scheduler to training mode."""
         self._test_mode = False
 
     def test(self) -> None:
-        """
-        Set the scheduler to testing mode.
-        """
+        """Set the scheduler to testing mode."""
         self._test_mode = True

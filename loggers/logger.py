@@ -1,7 +1,8 @@
 """
 logger.py
 
-This module contains the Logger class, which is a singleton class designed to log scalar values to TensorBoard.
+This module contains the Logger class, which is a singleton class designed to log scalar values to
+TensorBoard.
 """
 
 from torch.utils.tensorboard import SummaryWriter
@@ -10,8 +11,7 @@ import time
 
 
 class Logger:
-    """
-    The Logger class is a singleton class designed to log scalar values to TensorBoard.
+    """The Logger class is a singleton class designed to log scalar values to TensorBoard.
 
     Attributes:
         _instance (SummaryWriter): The instance of the logger.
@@ -24,11 +24,13 @@ class Logger:
 
     @classmethod
     def get_logger_instance(cls, log_dir=".logs/kioku"):
-        """
-        Returns the instance of the logger. If the instance does not exist, it creates a new instance.
+        """Returns the instance of the logger. 
+        
+        If the instance does not exist, it creates a new instance.
 
         Args:
             log_dir (str): The directory to save the logs.
+
         Returns:
             SummaryWriter: The instance of the logger.
         """
@@ -40,8 +42,7 @@ class Logger:
 
     @classmethod
     def log_scalar(cls, tag, value):
-        """
-        Logs a scalar value to TensorBoard.
+        """Logs a scalar value to TensorBoard.
 
         Args:
             tag (str): The tag to assign to the scalar value.

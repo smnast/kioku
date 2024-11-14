@@ -1,7 +1,8 @@
 """
-dqn_agent.py
+dqn_per_agent.py
 
-This file contains the implementation of the DQN agent with a PER buffer.
+This file contains the implementation of the DQN agent with a
+Prioritized Experience Replay (PER) buffer.
 """
 
 from agents.agent import Agent
@@ -11,7 +12,6 @@ from memory.prioritized_experience_replay_buffer import (
 )
 from functions.double_value import DoubleValue
 import torch
-import torch.nn.functional as F
 import numpy as np
 from schedulers.scheduler import Scheduler
 from schedulers.exponential_decay_scheduler import ExponentialDecayScheduler
@@ -20,8 +20,7 @@ from loggers.logger import Logger
 
 
 class DQNPERAgent(Agent):
-    """
-    A Deep Q-Network (DQN) agent using a Prioritized Experience Replay (PER) buffer.
+    """A Deep Q-Network (DQN) agent using a Prioritized Experience Replay (PER) buffer.
 
     Attributes:
         _epsilon (Scheduler): The probability of taking a random action (exploration).
@@ -49,19 +48,21 @@ class DQNPERAgent(Agent):
         beta: Scheduler = ExponentialDecayScheduler(0.6, 1.0, 5000),
         buffer_epsilon: float = 1e-3,
     ) -> None:
-        """
-        Initialize the DQN agent.
+        """Initialize the DQN agent.
 
         Args:
             observation_size (int): The size of the observation.
             num_actions (int): The number of actions the agent can take.
             hidden_sizes (list[int]): The sizes of the models' hidden layers.
-            learning_rate (Scheduler): The learning rate.
-            epsilon (Scheduler): The epsilon value.
-            gamma (float): The gamma value.
-            transition_rate (float): The transition rate.
-            memory_size (int): The size of the memory.
-            batch_size (int): The size of the batch.
+            learning_rate (Scheduler): The learning rate scheduler.
+            epsilon (Scheduler): The epsilon value scheduler.
+            gamma (float): The discount factor for future rewards.
+            transition_rate (float): The rate at which the model is updated.
+            memory_size (int): The maximum size of the memory buffer.
+            batch_size (int): The batch size used for training.
+            alpha (float): The weight of the importance-sampling correction in PER.
+            beta (Scheduler): The scheduler for adjusting the importance-sampling exponent.
+            buffer_epsilon (float): A small value to avoid dividing by zero in importance-sampling.
         """
         self._epsilon = epsilon
         self._gamma = gamma
@@ -90,17 +91,16 @@ class DQNPERAgent(Agent):
         self._step = 0
 
     def act(
-        self, observation: np.ndarray, state: dict[str, np.ndarray] = None
-    ) -> tuple[np.ndarray, dict[str, np.ndarray]]:
-        """
-        Choose an action based on the current observation.
+        self, observation: np.ndarray, state: dict | None = None
+    ) -> tuple[np.ndarray, dict | None]:
+        """Choose an action based on the current observation.
 
         Args:
             observation (np.ndarray): The current observation.
-            state (dict[str, np.ndarray]): The state of the agent.
+            state (dict | None): The state of the agent.
 
         Returns:
-            tuple[np.ndarray, dict[str, np.ndarray]]: The action to take, and the new state of the agent.
+            tuple[np.ndarray, dict | None]: The action to take, and the new state of the agent.
         """
         # Update the current step
         self._step += 1
@@ -112,7 +112,7 @@ class DQNPERAgent(Agent):
             # Select a random action
             chosen_action = np.random.randint(self._num_actions)
         else:
-            # Select the action with the highest predicted q value
+            # Select the action with the highest predicted Q-value
             with torch.no_grad():
                 q_values = self._model.predict(observation)
                 q_values = q_values.numpy()
@@ -127,8 +127,7 @@ class DQNPERAgent(Agent):
         return chosen_action, state
 
     def process_transition(self, transition: Transition) -> None:
-        """
-        Process a transition by either storing it in the memory buffer or learning on-policy.
+        """Process a transition by either storing it in the memory buffer or learning on-policy.
 
         Args:
             transition (Transition): The transition to process.
@@ -142,9 +141,7 @@ class DQNPERAgent(Agent):
         self._memory.store(transition, td_error.item())
 
     def learn(self) -> None:
-        """
-        Train the agent on a batch of experiences.
-        """
+        """Train the agent on a batch of experiences."""
         if not self._memory.can_sample():
             return
 
@@ -179,18 +176,21 @@ class DQNPERAgent(Agent):
         )
         Logger.log_scalar("dqn_per_agent/sampling_weights/max", sampling_weights.max())
         Logger.log_scalar("dqn_per_agent/sampling_weights/min", sampling_weights.min())
-        Logger.log_scalar("dqn_per_agent/sampling_weights/mean", sampling_weights.mean())
+        Logger.log_scalar(
+            "dqn_per_agent/sampling_weights/mean", sampling_weights.mean()
+        )
 
     def _compute_td_error(
         self, transition: Transition
     ) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
-        """
-        Compute the TD error for a transition or batch of transitions.
+        """Compute the TD error for a transition or batch of transitions.
 
         Args:
             transition (Transition): The transition.
+
         Returns:
-            tuple[torch.Tensor, torch.Tensor, torch.Tensor]: The TD error, current q values, and target q values.
+            tuple[torch.Tensor, torch.Tensor, torch.Tensor]: The TD error, current Q-values and
+                target Q-values.
         """
         # Unpack the transition
         observation, action, reward, next_observation, done = transition[
@@ -204,7 +204,7 @@ class DQNPERAgent(Agent):
         next_observation = torch.tensor(next_observation, dtype=torch.float32)
         done = torch.tensor(done, dtype=torch.float32)
 
-        # Compute the target q value
+        # Compute the target Q-value
         target_q_values = (
             self._model.predict(next_observation, target=True).max(dim=-1).values
         )
@@ -212,7 +212,7 @@ class DQNPERAgent(Agent):
             1 - done.squeeze(dim=-1)
         )
 
-        # Compute the current q value
+        # Compute the current Q-value
         current_q_values = self._model.predict(observation)
         current_q_values = current_q_values.gather(dim=-1, index=action).squeeze(dim=-1)
 
@@ -220,15 +220,11 @@ class DQNPERAgent(Agent):
         return target_q_values - current_q_values, current_q_values, target_q_values
 
     def train(self) -> None:
-        """
-        Set the agent to training mode.
-        """
+        """Set the agent to training mode."""
         self._model.train()
         self._epsilon.train()
 
     def test(self) -> None:
-        """
-        Set the agent to testing mode.
-        """
+        """Set the agent to testing mode."""
         self._model.test()
         self._epsilon.test()

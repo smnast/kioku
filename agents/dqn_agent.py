@@ -18,8 +18,7 @@ from loggers.logger import Logger
 
 
 class DQNAgent(Agent):
-    """
-    A Deep Q-Network (DQN) agent.
+    """A Deep Q-Network (DQN) agent.
 
     Attributes:
         _epsilon (Scheduler): The probability of taking a random action (exploration).
@@ -44,8 +43,7 @@ class DQNAgent(Agent):
         memory_size: int = 5000,
         batch_size: int = 32,
     ) -> None:
-        """
-        Initialize the DQN agent.
+        """Initialize the DQN agent.
 
         Args:
             observation_size (int): The size of the observation.
@@ -83,22 +81,19 @@ class DQNAgent(Agent):
         self._step = 0
 
     def act(
-        self, observation: np.ndarray, state: dict[str, np.ndarray] = None
-    ) -> tuple[np.ndarray, dict[str, np.ndarray]]:
-        """
-        Choose an action based on the current observation.
+        self, observation: np.ndarray, state: dict = None
+    ) -> tuple[np.ndarray, dict | None]:
+        """Choose an action based on the current observation.
 
         Args:
             observation (np.ndarray): The current observation.
-            state (dict[str, np.ndarray]): The state of the agent.
+            state (dict | None): The state of the agent.
 
         Returns:
-            tuple[np.ndarray, dict[str, np.ndarray]]: The action to take, and the new state of the agent.
+            tuple[np.ndarray, dict | None]: The action to take, and the new state of the agent.
         """
-        # Update the current step
         self._step += 1
 
-        # Choose an action
         chosen_action = None
         epsilon_value = self._epsilon.value(self._step)
         if np.random.rand() < epsilon_value:
@@ -111,7 +106,6 @@ class DQNAgent(Agent):
                 q_values = q_values.numpy()
             chosen_action = np.argmax(q_values)
 
-        # Store the action in a numpy array
         chosen_action = np.array([chosen_action])
 
         # Log the epsilon value
@@ -120,8 +114,7 @@ class DQNAgent(Agent):
         return chosen_action, state
 
     def process_transition(self, transition: Transition) -> None:
-        """
-        Process a transition by either storing it in the memory buffer or learning on-policy.
+        """Process a transition by either storing it in the memory buffer or learning on-policy.
 
         Args:
             transition (Transition): The transition to process.
@@ -130,26 +123,21 @@ class DQNAgent(Agent):
         self._memory.store(transition)
 
     def learn(self) -> None:
-        """
-        Train the agent on a batch of experiences.
-        """
+        """Train the agent on a batch of experiences."""
         if not self._memory.can_sample():
             return
 
-        # Get the batch of transitions
         batch_transition = self._memory.sample()
         observation, action, reward, next_observation, done = batch_transition[
             *self._relevant_keys
         ]
 
-        # Convert the numpy arrays to torch tensors
         observation = torch.tensor(observation, dtype=torch.float32)
         action = torch.tensor(action, dtype=torch.long)
         reward = torch.tensor(reward, dtype=torch.float32)
         next_observation = torch.tensor(next_observation, dtype=torch.float32)
         done = torch.tensor(done, dtype=torch.float32)
 
-        # Compute the target q value
         target_q_values = (
             self._model.predict(next_observation, target=True).max(dim=1).values
         )
@@ -157,11 +145,9 @@ class DQNAgent(Agent):
             1 - done.squeeze(dim=1)
         )
 
-        # Compute the current q value
         current_q_values = self._model.predict(observation)
         current_q_values = current_q_values.gather(1, action).squeeze(dim=1)
 
-        # Train the model
         q_loss = F.mse_loss(current_q_values, target_q_values)
 
         self._model.optimize(q_loss, self._step)
@@ -178,15 +164,11 @@ class DQNAgent(Agent):
         )
 
     def train(self) -> None:
-        """
-        Set the agent to training mode.
-        """
+        """Set the agent to training mode."""
         self._model.train()
         self._epsilon.train()
 
     def test(self) -> None:
-        """
-        Set the agent to testing mode.
-        """
+        """Set the agent to testing mode."""
         self._model.test()
         self._epsilon.test()

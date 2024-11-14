@@ -2,6 +2,10 @@
 main.py
 
 This module contains the main script that trains and tests the agent.
+
+Ideally, the main script should be kept as simple as possible. It should
+generally only create objects and run functions. Try not to place any complex
+logic here and instead abstract it away.
 """
 
 from environments.gym_environment import GymEnvironment

@@ -19,8 +19,7 @@ from loggers.logger import Logger
 
 
 class A2CAgent(Agent):
-    """
-    An implementation of the Advantage Actor-Critic (A2C) algorithm.
+    """An implementation of the Advantage Actor-Critic (A2C) algorithm.
 
     Attributes:
         _actor (DiscreteActor): The actor network.
@@ -49,8 +48,7 @@ class A2CAgent(Agent):
         lambda_: float = 0.95,
         n_steps: int = 20,
     ) -> None:
-        """
-        Initialize the A2C agent.
+        """Initialize the A2C agent.
 
         Args:
             observation_size (int): The size of the observation space.
@@ -93,17 +91,16 @@ class A2CAgent(Agent):
         self._step = 0
 
     def act(
-        self, observation: np.ndarray, state: dict[str, np.ndarray] = None
-    ) -> tuple[np.ndarray, dict[str, np.ndarray]]:
-        """
-        Choose an action based on the current observation.
+        self, observation: np.ndarray, state: dict | None = None
+    ) -> tuple[np.ndarray, dict | None]:
+        """Choose an action based on the current observation.
 
         Args:
             observation (np.ndarray): The current observation.
-            state (dict[str, np.ndarray]): The state of the agent.
+            state (dict | None): The state of the agent.
 
         Returns:
-            tuple[np.ndarray, dict[str, np.ndarray]]: The action to take, and the new state of the agent.
+            tuple[np.ndarray, dict | None]: The action to take, and the new state of the agent.
         """
         # Update the current step
         self._step += 1
@@ -120,8 +117,7 @@ class A2CAgent(Agent):
         }
 
     def process_transition(self, transition: Transition) -> None:
-        """
-        Process a transition by storing it in the buffer.
+        """Process a transition by storing it in the buffer.
 
         Args:
             transition (Transition): The transition to process.
@@ -130,9 +126,7 @@ class A2CAgent(Agent):
         self._n_step_buffer.store(transition)
 
     def learn(self) -> None:
-        """
-        Train the agent for one step.
-        """
+        """Train the agent for one step."""
         if not self._n_step_buffer.can_sample():
             return
 
@@ -206,8 +200,7 @@ class A2CAgent(Agent):
         next_values: torch.Tensor,
         dones: torch.Tensor,
     ) -> torch.Tensor:
-        """
-        Computes Generalized Advantage Estimation (GAE).
+        """Computes Generalized Advantage Estimation (GAE).
 
         Args:
             rewards (torch.Tensor): The rewards for each step.
@@ -231,15 +224,11 @@ class A2CAgent(Agent):
         return advantages
 
     def train(self) -> None:
-        """
-        Set the agent to training mode.
-        """
+        """Set the agent to training mode."""
         self._actor.train()
         self._critic.train()
 
     def test(self) -> None:
-        """
-        Set the agent to testing mode.
-        """
+        """Set the agent to testing mode."""
         self._actor.test()
         self._critic.test()

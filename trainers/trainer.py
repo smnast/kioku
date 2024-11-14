@@ -1,7 +1,8 @@
 """
 trainer.py
 
-This file contains the Trainer class, which is responsible for training an agent on a given environment.
+This file contains the Trainer class, which is responsible for training an agent on a given
+environment.
 """
 
 from agents.agent import Agent
@@ -12,8 +13,7 @@ from loggers.logger import Logger
 
 
 class Trainer:
-    """
-    The Trainer class trains an agent on a given environment.
+    """The Trainer class trains an agent on a given environment.
 
     Attributes:
         _agent (Agent): The agent to train.
@@ -21,8 +21,7 @@ class Trainer:
     """
 
     def __init__(self, agent: Agent, environment: Environment) -> None:
-        """
-        Initializes the Trainer class.
+        """Initializes the Trainer class.
 
         Args:
             agent (Agent): The agent to train.
@@ -32,8 +31,7 @@ class Trainer:
         self._environment = environment
 
     def train(self, num_steps: int) -> None:
-        """
-        Trains the agent for a specified number of steps.
+        """Trains the agent for a specified number of steps.
 
         Args:
             num_steps (int): The number of steps to train the agent for.
@@ -91,8 +89,7 @@ class Trainer:
             episode_reward += reward
 
     def test(self, num_episodes: int) -> dict[str, Any]:
-        """
-        Tests the agent for a specified number of episodes and returns the results.
+        """Tests the agent for a specified number of episodes and returns the results.
 
         Returns:
             dict[str, Any]: The results dictionary containing information about the testing.

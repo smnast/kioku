@@ -1,5 +1,4 @@
-"""
-prioritized_experience_replay_buffer.py
+"""prioritized_experience_replay_buffer.py
 
 This module contains an implementation of Prioritized Experience Replay (PER) buffer.
 """
@@ -13,14 +12,22 @@ from loggers.logger import Logger
 
 
 class PrioritizedExperienceReplayBuffer:
-    """
-    This class is an implementation of Prioritized Experience Replay Buffer.
+    """This class is an implementation of Prioritized Experience Replay Buffer.
 
     Attributes:
         _max_size (int): The maximum size of the buffer.
-        _full (bool): Whether the buffer is full or not.
-        _data (np.ndarray[Transition]): The data stored in the buffer.
-        _data_index (int): The index of the data in the buffer.
+        _full (bool): Whether the buffer is full.
+        _data_index (int): The current data index.
+        _batch_size (int): The size of the batch to sample.
+        _data (np.ndarray): The data array.
+        _priorities (np.ndarray): The priorities array.
+        _weights (np.ndarray): The weights array.
+        _tree_size (int): The size of the segment tree.
+        _priorities_a (np.ndarray): The priorities array in the segment tree.
+        _min_priorities_a (np.ndarray): The minimum priorities array in the segment tree.
+        _alpha (Scheduler): The alpha value for prioritized experience replay.
+        _beta (Scheduler): The beta value for prioritized experience replay.
+        _epsilon (float): The epsilon value for prioritized experience replay.
     """
 
     def __init__(
@@ -31,8 +38,7 @@ class PrioritizedExperienceReplayBuffer:
         beta: Scheduler = ExponentialDecayScheduler(0.4, 1.0, 100000),
         epsilon: float = 1e-5,
     ) -> None:
-        """
-        Initializes the Experience Replay Buffer.
+        """Initializes the Experience Replay Buffer.
 
         Args:
             max_size (int): The maximum size of the buffer.
@@ -62,8 +68,7 @@ class PrioritizedExperienceReplayBuffer:
         self._epsilon = epsilon
 
     def store(self, transition: Transition, error: float) -> None:
-        """
-        Stores a transition in the buffer.
+        """Stores a transition in the buffer.
 
         Args:
             transition (Transition): The transition to store.
@@ -101,13 +106,14 @@ class PrioritizedExperienceReplayBuffer:
         self._update_priority_a(index, priority_a, 0, 0, self._tree_size - 1)
 
     def sample(self, step: int) -> tuple[Transition, np.ndarray, list[int]]:
-        """
-        Samples a batch of transitions from the buffer.
+        """Samples a batch of transitions from the buffer.
 
         Args:
             step (int): The agent's current step.
+
         Returns:
-            tuple[Transition, np.ndarray, list[int]]: A tuple with a batch of transition data, the sampling weights and the corresponding indices in the PER buffer.
+            tuple[Transition, np.ndarray, list[int]]: A tuple with a batch of transition data, the
+                sampling weights and the corresponding indices in the PER buffer.
         """
         if not self.can_sample():
             raise ValueError(
@@ -139,7 +145,7 @@ class PrioritizedExperienceReplayBuffer:
                 self._get_priority_a_at_index(index) / self._total_priorities_a()
             )
             weight = (probability * len(self)) ** -self._beta.value(step)
-            
+
             # Normalize the weight
             weight = weight / max_weight
 
@@ -149,14 +155,15 @@ class PrioritizedExperienceReplayBuffer:
         transitions = Transition.combine(transitions)
 
         # Log the current beta value
-        Logger.log_scalar("prioritized_experience_replay_buffer/beta", self._beta.value(step))
+        Logger.log_scalar(
+            "prioritized_experience_replay_buffer/beta", self._beta.value(step)
+        )
         Logger.log_scalar("prioritized_experience_replay_buffer/weight_max", max_weight)
 
         return transitions, weights, indices
 
     def can_sample(self) -> bool:
-        """
-        Checks if the buffer has enough transitions to sample a full batch.
+        """Checks if the buffer has enough transitions to sample a full batch.
 
         Returns:
             bool: Whether the buffer has enough transitions to sample a full batch.
@@ -166,8 +173,7 @@ class PrioritizedExperienceReplayBuffer:
     def _update_priority_a(
         self, index: int, priority: float, node: int, start: int, end: int
     ) -> tuple[float, float]:
-        """
-        Updates the priority of a transition in the buffer, and performs the corresponding updates in the segment tree.
+        """Updates the priority of a transition in the buffer, and updates the segment tree.
 
         Note: the start and end indices are inclusive.
 
@@ -177,6 +183,7 @@ class PrioritizedExperienceReplayBuffer:
             node (int): The node index in the segment tree.
             start (int): The start index of the segment.
             end (int): The end index of the segment.
+
         Returns:
             tuple[float, float]: The sum of priorities and the minimum priority in the segment.
         """
@@ -212,8 +219,7 @@ class PrioritizedExperienceReplayBuffer:
         return self._priorities_a[node], self._min_priorities_a[node]
 
     def _sample_priority(self, priority: float, node: int, start: int, end: int) -> int:
-        """
-        Samples a transition from the buffer based on the priority.
+        """Samples a transition from the buffer based on the priority.
 
         Note: the start and end indices are inclusive.
 
@@ -222,6 +228,7 @@ class PrioritizedExperienceReplayBuffer:
             node (int): The node index in the segment tree.
             start (int): The start index of the segment.
             end (int): The end index of the segment.
+
         Returns:
             int: The index of the transition.
         """
@@ -253,11 +260,11 @@ class PrioritizedExperienceReplayBuffer:
         return self._min_priorities_a[0]
 
     def _get_priority_a_at_index(self, data_index: int) -> float:
-        """
-        Retrieves the priority at a specific index in the segment tree.
+        """Retrieves the priority at a specific index in the segment tree.
 
         Args:
             data_index (int): The index of the transition in the original data array.
+
         Returns:
             float: The priority at the specified index in the segment tree.
         """
@@ -266,8 +273,7 @@ class PrioritizedExperienceReplayBuffer:
         return self._priorities_a[leaf_index]
 
     def _advance_index(self) -> None:
-        """
-        Advance the data index pointer by one.
+        """Advance the data index pointer by one.
 
         This is a circular buffer:
         if the pointer exceeds the maximum size, reset it to 0 and set the buffer to full.
@@ -283,5 +289,5 @@ class PrioritizedExperienceReplayBuffer:
         """Return the current length of the buffer."""
         if self._full:
             return self._max_size
-            
+
         return self._data_index

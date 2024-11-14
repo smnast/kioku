@@ -1,7 +1,8 @@
 """
 discrete_actor.py
 
-This module contains the DiscreteActor class, which is an implementation of an actor for discrete action spaces.
+This module contains the DiscreteActor class, which is an implementation of an actor for discrete
+action spaces.
 """
 
 import torch
@@ -15,8 +16,7 @@ from loggers.logger import Logger
 
 
 class DiscreteActor:
-    """
-    An implementation of an actor for discrete action spaces.
+    """An implementation of an actor for discrete action spaces.
 
     Attributes:
         _model (MLP): The model used to predict the action probabilities.
@@ -52,8 +52,7 @@ class DiscreteActor:
         self._gradient_clipping = gradient_clipping
 
     def act(self, observation: np.ndarray) -> tuple[torch.Tensor, torch.Tensor]:
-        """
-        Select an action based on the observation.
+        """Select an action based on the observation.
 
         Args:
             observation (np.ndarray): The observation to predict the action probabilities for.
@@ -72,8 +71,7 @@ class DiscreteActor:
         return action, action_log_prob
 
     def optimize(self, loss: torch.Tensor, step: int) -> None:
-        """
-        Optimize the actor model.
+        """Optimize the actor model.
 
         Args:
             actor_loss (torch.Tensor): The loss of the actor model.
@@ -104,15 +102,11 @@ class DiscreteActor:
         Logger.log_scalar("actor/gradient_norm", average_grad_norm)
 
     def train(self) -> None:
-        """
-        Set the actor model to training mode.
-        """
+        """Set the actor model to training mode."""
         self._model.train()
         self._learning_rate.train()
 
     def test(self) -> None:
-        """
-        Set the actor model to evaluation mode.
-        """
+        """Set the actor model to evaluation mode."""
         self._model.eval()
         self._learning_rate.test()

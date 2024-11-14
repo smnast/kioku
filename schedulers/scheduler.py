@@ -8,15 +8,12 @@ import torch
 from abc import ABC, abstractmethod
 
 
-class Scheduler:
-    """
-    An abstract class for a scheduler.
-    """
+class Scheduler(ABC):
+    """An abstract class for a scheduler."""
 
     @abstractmethod
     def value(self, step: int) -> float:
-        """
-        Get the value of the scheduler at a given step.
+        """Get the value of the scheduler at a given step.
 
         Args:
             step (int): The current step.
@@ -28,21 +25,16 @@ class Scheduler:
 
     @abstractmethod
     def train(self) -> None:
-        """
-        Set the scheduler to training mode.
-        """
+        """Set the scheduler to training mode."""
         pass
 
     @abstractmethod
     def test(self) -> None:
-        """
-        Set the scheduler to testing mode.
-        """
+        """Set the scheduler to testing mode."""
         pass
 
     def adjust(self, optimizer: torch.optim.Optimizer, step: int) -> None:
-        """
-        Adjust the learning rate of the optimizer using the scheduler.
+        """Adjust the learning rate of the optimizer using the scheduler.
 
         Args:
             optimizer (torch.optim.Optimizer): The optimizer to adjust.

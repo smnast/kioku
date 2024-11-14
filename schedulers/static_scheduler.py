@@ -8,8 +8,7 @@ from schedulers.scheduler import Scheduler
 
 
 class StaticScheduler(Scheduler):
-    """
-    A scheduler that always returns the same value.
+    """A scheduler that always returns the same value.
 
     Attributes:
         _value (float): The value to return.
@@ -18,8 +17,7 @@ class StaticScheduler(Scheduler):
     """
 
     def __init__(self, value: float, test_value: float = None) -> None:
-        """
-        Initialize the static scheduler.
+        """Initialize the static scheduler.
 
         Args:
             value (float): The value to return.
@@ -37,8 +35,7 @@ class StaticScheduler(Scheduler):
             self._test_value = self._value
 
     def value(self, step: int) -> float:
-        """
-        Get the value of the scheduler at a given step.
+        """Get the value of the scheduler at a given step.
 
         Args:
             step (int): The current step.
@@ -51,13 +48,9 @@ class StaticScheduler(Scheduler):
         return self._value
 
     def train(self) -> None:
-        """
-        Set the scheduler to training mode.
-        """
+        """Set the scheduler to training mode."""
         self._test_mode = False
 
     def test(self) -> None:
-        """
-        Set the scheduler to testing mode.
-        """
+        """Set the scheduler to testing mode."""
         self._test_mode = True
