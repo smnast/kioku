@@ -4,7 +4,7 @@ static_scheduler.py
 This file contains the implementation of the static scheduler, which always returns the same value.
 """
 
-from schedulers.scheduler import Scheduler
+from schedulers import Scheduler
 
 
 class StaticScheduler(Scheduler):
@@ -24,7 +24,7 @@ class StaticScheduler(Scheduler):
             test_value (float): The value to return in test mode.
         """
         self._value = value
-        
+
         # Begin in training mode
         self._test_mode = False
 

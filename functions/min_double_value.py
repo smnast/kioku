@@ -5,12 +5,11 @@ This module contains the definition of the MinDoubleValue class
 that combines two value networks, each with a critic, and takes the minimum of their outputs.
 """
 
+from models import MLP
+from schedulers import Scheduler, StaticScheduler
+from loggers import Logger
 import torch
 from torch import optim
-from models.mlp import MLP
-from schedulers.scheduler import Scheduler
-from schedulers.static_scheduler import StaticScheduler
-from loggers.logger import Logger
 
 
 class MinDoubleValue:

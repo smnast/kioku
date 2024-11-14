@@ -8,9 +8,9 @@ generally only create objects and run functions. Try not to place any complex
 logic here and instead abstract it away.
 """
 
-from environments.gym_environment import GymEnvironment
-from agents.a2c_agent import A2CAgent
-from trainers.trainer import Trainer
+from environments import GymEnvironment
+from agents import A2CAgent
+from trainers import Trainer
 import torch
 import numpy as np
 

@@ -6,10 +6,8 @@ Provides a wrapper for the a visual gymnasium environment to be interacted with 
 
 import torch
 import numpy as np
-import gymnasium as gym
-from environments.environment import Environment
-from environments.gym_environment import GymEnvironment
-from vision.feature_extractor import FeatureExtractor
+from environments import Environment, GymEnvironment
+from vision import FeatureExtractor
 import cv2
 
 

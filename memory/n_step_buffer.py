@@ -6,9 +6,9 @@ for n-step returns and General Advantage Estimation (GAE).
 It discards all transitions after sampling, and only allows sampling when the buffer is full.
 """
 
+from utils import Transition
+from loggers import Logger
 import numpy as np
-from utils.transition import Transition
-from loggers.logger import Logger
 
 
 class NStepBuffer:

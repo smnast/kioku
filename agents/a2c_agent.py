@@ -8,14 +8,12 @@ which is an implementation of the Advantage Actor-Critic (A2C) algorithm.
 import torch
 import torch.nn.functional as F
 import numpy as np
-from agents.agent import Agent
-from memory.n_step_buffer import NStepBuffer
-from functions.discrete_actor import DiscreteActor
-from functions.value import Value
-from schedulers.scheduler import Scheduler
-from schedulers.static_scheduler import StaticScheduler
-from utils.transition import Transition
-from loggers.logger import Logger
+from agents import Agent
+from memory import NStepBuffer
+from functions import DiscreteActor, Value
+from schedulers import Scheduler, StaticScheduler
+from utils import Transition
+from loggers import Logger
 
 
 class A2CAgent(Agent):

@@ -1,3 +1,9 @@
+"""
+environment.py
+
+This module contains the abstract base class for an environment.
+"""
+
 from abc import ABC, abstractmethod
 import numpy as np
 

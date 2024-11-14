@@ -5,11 +5,11 @@ This file contains the Trainer class, which is responsible for training an agent
 environment.
 """
 
-from agents.agent import Agent
-from environments.environment import Environment
-from utils.transition import Transition
+from agents import Agent
+from environments import Environment
+from utils import Transition
+from loggers import Logger
 from typing import Any
-from loggers.logger import Logger
 
 
 class Trainer:

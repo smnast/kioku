@@ -4,17 +4,15 @@ dqn_agent.py
 This file contains the implementation of the DQN agent.
 """
 
-from agents.agent import Agent
-from utils.transition import Transition
-from memory.experience_replay_buffer import ExperienceReplayBuffer
-from functions.double_value import DoubleValue
+from agents import Agent
+from utils import Transition
+from memory import ExperienceReplayBuffer
+from functions import DoubleValue
+from schedulers import Scheduler, ExponentialDecayScheduler, StaticScheduler
+from loggers import Logger
 import torch
 import torch.nn.functional as F
 import numpy as np
-from schedulers.scheduler import Scheduler
-from schedulers.exponential_decay_scheduler import ExponentialDecayScheduler
-from schedulers.static_scheduler import StaticScheduler
-from loggers.logger import Logger
 
 
 class DQNAgent(Agent):

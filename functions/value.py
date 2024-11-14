@@ -4,12 +4,11 @@ value.py
 This module contains the definition of a value function approximator class, Value.
 """
 
+from models import MLP
+from schedulers import Scheduler, StaticScheduler
+from loggers import Logger
 import torch
-from torch import nn, optim
-from models.mlp import MLP
-from schedulers.scheduler import Scheduler
-from schedulers.static_scheduler import StaticScheduler
-from loggers.logger import Logger
+from torch import optim
 
 
 class Value:

@@ -7,7 +7,6 @@ This file contains the FeatureExtractor class that can be used to extract a feat
 import torch
 from torch import nn
 from torchvision import models, transforms
-import numpy as np
 from typing import Any
 
 
@@ -28,10 +27,9 @@ class FeatureExtractor(nn.Module):
         super().__init__()
 
         # Resize the smallest dimension to 224 while maintaining aspect ratio
-        self._resize = transforms.Compose([
-            transforms.Resize(224),
-            transforms.CenterCrop(224)
-        ])
+        self._resize = transforms.Compose(
+            [transforms.Resize(224), transforms.CenterCrop(224)]
+        )
 
         # Load the pretrained model and remove the last fully connected layer
         self._model = models.resnet18(weights=models.ResNet18_Weights.DEFAULT)

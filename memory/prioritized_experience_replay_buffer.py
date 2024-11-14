@@ -3,12 +3,10 @@
 This module contains an implementation of Prioritized Experience Replay (PER) buffer.
 """
 
+from schedulers import Scheduler, ExponentialDecayScheduler
+from utils import Transition
+from loggers import Logger
 import numpy as np
-from utils.transition import Transition
-from schedulers.scheduler import Scheduler
-from schedulers.static_scheduler import StaticScheduler
-from schedulers.exponential_decay_scheduler import ExponentialDecayScheduler
-from loggers.logger import Logger
 
 
 class PrioritizedExperienceReplayBuffer:

@@ -1,5 +1,5 @@
 import numpy as np
-from environments.environment import Environment
+from environments import Environment
 
 
 class DoorEnvironment(Environment):

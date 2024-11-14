@@ -5,14 +5,12 @@ This module contains the DiscreteActor class, which is an implementation of an a
 action spaces.
 """
 
+from models import MLP
+from schedulers import Scheduler, StaticScheduler
+from loggers import Logger
 import torch
-import torch.nn.functional as F
 from torch.distributions import Categorical
 import numpy as np
-from models.mlp import MLP
-from schedulers.scheduler import Scheduler
-from schedulers.static_scheduler import StaticScheduler
-from loggers.logger import Logger
 
 
 class DiscreteActor:

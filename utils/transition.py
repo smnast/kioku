@@ -67,7 +67,7 @@ class Transition:
         Returns:
             Transition: A new transition object with the combined data from the batch of transitions.
         """
-        if not transitions:
+        if len(transitions) == 0:
             raise ValueError("The transitions list is empty.")
 
         batch_data = {}

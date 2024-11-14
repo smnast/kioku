@@ -4,7 +4,7 @@ gym_environment.py
 Provides a wrapper for the a gymnasium environment to be interacted with by an agent.
 """
 
-from environments.environment import Environment
+from environments import Environment
 import gymnasium as gym
 import numpy as np
 

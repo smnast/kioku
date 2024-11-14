@@ -5,7 +5,7 @@ This file defines the abstract base class for agents.
 """
 
 import numpy as np
-from utils.transition import Transition
+from utils import Transition
 from abc import ABC, abstractmethod
 
 

@@ -4,9 +4,9 @@ experience_replay_buffer.py
 This module contains the definition of an experience replay buffer.
 """
 
+from utils import Transition
+from loggers import Logger
 import numpy as np
-from utils.transition import Transition
-from loggers.logger import Logger
 
 
 class ExperienceReplayBuffer:
@@ -51,7 +51,7 @@ class ExperienceReplayBuffer:
 
         Raises:
             ValueError: If the buffer does not have enough transitions to sample a full batch.
-        
+
         Returns:
             Transition: A batch of transitions with combined data.
         """

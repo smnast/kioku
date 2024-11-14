@@ -5,8 +5,7 @@ This file contains the implementation of the exponential decay scheduler, which 
 exponentially over time.
 """
 
-import numpy as np
-from schedulers.scheduler import Scheduler
+from schedulers import Scheduler
 
 
 class ExponentialDecayScheduler(Scheduler):
@@ -37,7 +36,7 @@ class ExponentialDecayScheduler(Scheduler):
 
         # Begin in training mode
         self._test_mode = False
-        
+
         # If an explicit test value is provided, use it. Otherwise, default to the end value.
         self._test_value = self._end if test_value is None else test_value
 

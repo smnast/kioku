@@ -5,18 +5,14 @@ This file contains the implementation of the DQN agent with a
 Prioritized Experience Replay (PER) buffer.
 """
 
-from agents.agent import Agent
-from utils.transition import Transition
-from memory.prioritized_experience_replay_buffer import (
-    PrioritizedExperienceReplayBuffer,
-)
-from functions.double_value import DoubleValue
+from agents import Agent
+from utils import Transition
+from memory import PrioritizedExperienceReplayBuffer
+from functions import DoubleValue
+from schedulers import Scheduler, ExponentialDecayScheduler, StaticScheduler
+from loggers import Logger
 import torch
 import numpy as np
-from schedulers.scheduler import Scheduler
-from schedulers.exponential_decay_scheduler import ExponentialDecayScheduler
-from schedulers.static_scheduler import StaticScheduler
-from loggers.logger import Logger
 
 
 class DQNPERAgent(Agent):
