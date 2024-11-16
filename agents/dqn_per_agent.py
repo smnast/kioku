@@ -43,6 +43,7 @@ class DQNPERAgent(Agent):
         alpha: float = 0.4,
         beta: Scheduler = ExponentialDecayScheduler(0.6, 1.0, 5000),
         buffer_epsilon: float = 1e-3,
+        gradient_clipping: float = 0.5,
     ) -> None:
         """Initialize the DQN agent.
 
@@ -59,6 +60,7 @@ class DQNPERAgent(Agent):
             alpha (float): The weight of the importance-sampling correction in PER.
             beta (Scheduler): The scheduler for adjusting the importance-sampling exponent.
             buffer_epsilon (float): A small value to avoid dividing by zero in importance-sampling.
+            gradient_clipping (float): The max gradient norm for the agent's models.
         """
         self._epsilon = epsilon
         self._gamma = gamma
@@ -69,6 +71,7 @@ class DQNPERAgent(Agent):
             hidden_sizes=hidden_sizes,
             learning_rate=learning_rate,
             transition_rate=transition_rate,
+            gradient_clipping=gradient_clipping,
         )
         self._num_actions = num_actions
 

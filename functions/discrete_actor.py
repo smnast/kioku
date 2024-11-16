@@ -68,6 +68,25 @@ class DiscreteActor:
 
         return action, action_log_prob
 
+    def log_prob(self, observation: np.ndarray, action: np.ndarray) -> torch.Tensor:
+        """Compute the log probability of taking a given action in a given state.
+        
+        Args:
+            observation (np.ndarray): The observation to predict the action probabilities for.
+            action (np.ndarray): The action to compute the log probability for.
+        
+        Returns:
+            torch.Tensor: The log probability of taking the action.
+        """
+        # Get the action probabilities from the model
+        logits = self._model(observation)
+
+        # Create a distribution from the action probabilities
+        action_dist = Categorical(logits=logits)
+        action_log_prob = action_dist.log_prob(action)
+
+        return action_log_prob
+
     def optimize(self, loss: torch.Tensor, step: int) -> None:
         """Optimize the actor model.
 

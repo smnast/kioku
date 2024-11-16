@@ -9,7 +9,7 @@ logic here and instead abstract it away.
 """
 
 from environments import GymEnvironment
-from agents import A2CAgent
+from agents import PPOAgent
 from trainers import Trainer
 import torch
 import numpy as np
@@ -20,15 +20,15 @@ np.random.seed(seed)
 torch.manual_seed(seed)
 
 # Create the environment
-env = GymEnvironment("LunarLander-v2")
-render_env = GymEnvironment("LunarLander-v2", render_mode="human")
+env = GymEnvironment("CartPole-v1")
+render_env = GymEnvironment("CartPole-v1", render_mode="human")
 
 # Create the agent
-agent = A2CAgent(env.observation_size, env.action_size)
+agent = PPOAgent(env.observation_size, env.action_size)
 
 # Train the agent
 trainer = Trainer(agent, env)
-trainer.train(200000)
+trainer.train(5000)
 
 # Test the agent
 tester = Trainer(agent, render_env)

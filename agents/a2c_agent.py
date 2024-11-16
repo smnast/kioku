@@ -45,6 +45,7 @@ class A2CAgent(Agent):
         gamma: float = 0.995,
         lambda_: float = 0.95,
         n_steps: int = 20,
+        gradient_clipping: float = 0.5,
     ) -> None:
         """Initialize the A2C agent.
 
@@ -60,15 +61,21 @@ class A2CAgent(Agent):
             gamma (float): The discount factor for future rewards.
             lambda_ (float): The GAE lambda parameter.
             n_steps (int): The number of steps to use for n-step returns.
+            gradient_clipping (float): The max gradient norm for the agent's models.
         """
         self._actor = DiscreteActor(
             observation_size,
             num_actions,
             actor_hidden_sizes,
             learning_rate=actor_learning_rate,
+            gradient_clipping=gradient_clipping,
         )
         self._critic = Value(
-            observation_size, 1, critic_hidden_sizes, learning_rate=critic_learning_rate
+            observation_size,
+            1,
+            critic_hidden_sizes,
+            learning_rate=critic_learning_rate,
+            gradient_clipping=gradient_clipping,
         )
 
         self._n_steps = n_steps

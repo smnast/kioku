@@ -40,6 +40,7 @@ class DQNAgent(Agent):
         transition_rate: float = 0.005,
         memory_size: int = 5000,
         batch_size: int = 32,
+        gradient_clipping: float = 0.5,
     ) -> None:
         """Initialize the DQN agent.
 
@@ -53,6 +54,7 @@ class DQNAgent(Agent):
             transition_rate (float): The transition rate.
             memory_size (int): The size of the memory.
             batch_size (int): The size of the batch.
+            gradient_clipping (float): The max gradient norm for the agent's models.
         """
         self._epsilon = epsilon
         self._gamma = gamma
@@ -63,6 +65,7 @@ class DQNAgent(Agent):
             hidden_sizes=hidden_sizes,
             learning_rate=learning_rate,
             transition_rate=transition_rate,
+            gradient_clipping=gradient_clipping,
         )
         self._num_actions = num_actions
 
