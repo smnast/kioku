@@ -4,6 +4,7 @@ mlp.py
 This module contains the definition of a Multi-Layer Perceptron (MLP) model.
 """
 
+from utils import DEVICE
 import torch
 import torch.nn.functional as F
 from torch import nn
@@ -50,7 +51,7 @@ class MLP(nn.Module):
             torch.Tensor: The output tensor after passing through the MLP.
         """
         if not isinstance(x, torch.Tensor):
-            x = torch.tensor(x)
+            x = torch.tensor(x).to(DEVICE)
 
         # Pass the input through the layers
         for layer in self.layers[:-1]:

@@ -7,6 +7,7 @@ One network is the online network and the other is the target network.
 
 from models import MLP
 from schedulers import Scheduler, StaticScheduler
+from utils import DEVICE
 from loggers import Logger
 import torch
 from torch import optim
@@ -47,8 +48,8 @@ class DoubleValue:
             transition_rate (float): The rate at which the target network transitions to the online
                 network.
         """
-        self._online_network = MLP(input_size, output_size, hidden_sizes)
-        self._target_network = MLP(input_size, output_size, hidden_sizes)
+        self._online_network = MLP(input_size, output_size, hidden_sizes).to(DEVICE)
+        self._target_network = MLP(input_size, output_size, hidden_sizes).to(DEVICE)
         self._copy_online_to_target()
 
         self._optimizer = optim.Adam(

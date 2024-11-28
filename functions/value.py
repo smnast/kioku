@@ -6,6 +6,7 @@ This module contains the definition of a value function approximator class, Valu
 
 from models import MLP
 from schedulers import Scheduler, StaticScheduler
+from utils import DEVICE
 from loggers import Logger
 import torch
 from torch import optim
@@ -17,7 +18,7 @@ class Value:
     This network is typically used for value functions in policy gradient methods like A2C.
 
     Attributes:
-        _network (MLP): The online network used for value estimation.
+        model (MLP): The online network used for value estimation.
         _optimizer (optim.Adam): The optimizer.
         _learning_rate (Scheduler): The learning rate scheduler.
         _gradient_clipping (float): The maximum gradient norm for clipping.
@@ -28,6 +29,7 @@ class Value:
         input_size: int,
         output_size: int,
         hidden_sizes: list[int] = [],
+        create_optimizer: bool = True,
         learning_rate: Scheduler = StaticScheduler(3e-4),
         gradient_clipping: float = 0.5,
     ) -> None:
@@ -37,14 +39,21 @@ class Value:
             input_size (int): The size of the input tensor.
             output_size (int): The size of the output tensor.
             hidden_sizes (list[int]): Sizes of hidden layers.
+            create_optimizer (bool): Whether to create the optimizer.
             learning_rate (Scheduler): The learning rate of the optimizer.
+            gradient_clipping (float): The maximum gradient norm for clipping.
         """
-        self._network = MLP(input_size, output_size, hidden_sizes)
-        self._optimizer = optim.Adam(
-            self._network.parameters(), lr=learning_rate.value(0)
-        )
-        self._learning_rate = learning_rate
-        self._gradient_clipping = gradient_clipping
+        self.model = MLP(input_size, output_size, hidden_sizes).to(DEVICE)
+        if create_optimizer:
+            self._optimizer = optim.Adam(
+                self.model.parameters(), lr=learning_rate.value(0)
+            )
+            self._learning_rate = learning_rate
+            self._gradient_clipping = gradient_clipping
+        else:
+            self._optimizer = None
+            self._learning_rate = None
+            self._gradient_clipping = None
 
     def predict(self, x: torch.Tensor) -> torch.Tensor:
         """Computes the value estimate for a given input.
@@ -55,7 +64,7 @@ class Value:
         Returns:
             torch.Tensor: The predicted value estimate.
         """
-        return self._network(x)
+        return self.model(x)
 
     def optimize(self, loss: torch.Tensor, step: int) -> None:
         """Optimizes the Value network.
@@ -64,6 +73,10 @@ class Value:
             loss (torch.Tensor): The loss tensor to backpropagate.
             step (int): The current training step.
         """
+        # If the optimizer is not created, raise an error
+        if self._optimizer is None:
+            raise ValueError("The optimizer was not created.")
+
         # Update the optimizer learning rate
         self._learning_rate.adjust(self._optimizer, step)
 
@@ -71,7 +84,7 @@ class Value:
         self._optimizer.zero_grad()
         loss.backward()
         torch.nn.utils.clip_grad_norm_(
-            self._network.parameters(), max_norm=self._gradient_clipping
+            self.model.parameters(), max_norm=self._gradient_clipping
         )
         self._optimizer.step()
 
@@ -80,16 +93,18 @@ class Value:
 
         # Log the average gradient magnitude
         avg_gradient = sum(
-            p.grad.abs().mean() for p in self._network.parameters()
-        ) / len(list(self._network.parameters()))
+            p.grad.abs().mean() for p in self.model.parameters()
+        ) / len(list(self.model.parameters()))
         Logger.log_scalar("value/gradient", avg_gradient)
 
     def train(self) -> None:
         """Sets the Value network to training mode."""
-        self._network.train()
-        self._learning_rate.train()
+        self.model.train()
+        if self._learning_rate:
+            self._learning_rate.train()
 
     def test(self) -> None:
         """Sets the Value network to evaluation mode."""
-        self._network.eval()
-        self._learning_rate.test()
+        self.model.eval()
+        if self._learning_rate:
+            self._learning_rate.test()

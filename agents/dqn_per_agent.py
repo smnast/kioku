@@ -114,7 +114,7 @@ class DQNPERAgent(Agent):
             # Select the action with the highest predicted Q-value
             with torch.no_grad():
                 q_values = self._model.predict(observation)
-                q_values = q_values.numpy()
+                q_values = q_values.cpu().numpy()
             chosen_action = np.argmax(q_values)
 
         # Store the action in a numpy array
@@ -131,7 +131,7 @@ class DQNPERAgent(Agent):
         Args:
             transition (Transition): The transition to process.
         """
-        transition = transition.filter(*self._relevant_keys)
+        transition = transition.filter(self._relevant_keys)
 
         # Compute TD error of transition
         td_error, _, _ = self._compute_td_error(transition)
@@ -193,7 +193,7 @@ class DQNPERAgent(Agent):
         """
         # Unpack the transition
         observation, action, reward, next_observation, done = transition[
-            *self._relevant_keys
+            self._relevant_keys
         ]
 
         # Convert the numpy arrays to torch tensors

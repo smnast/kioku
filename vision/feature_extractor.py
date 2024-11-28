@@ -4,65 +4,148 @@ feature_extractor.py
 This file contains the FeatureExtractor class that can be used to extract a feature vector from an image.
 """
 
+from utils import DEVICE
 import torch
 from torch import nn
-from torchvision import models, transforms
+import torch.nn.functional as F
 from typing import Any
 
 
 class FeatureExtractor(nn.Module):
     """
     This class is used to extract a feature vector from an image.
-    The feature vector is the output of the second to last layer of a pretrained ResNet18 model.
 
     Attributes:
-        _resize (torchvision.transforms.Resize): A torchvision transform that resizes the smallest dimension of an image to 224 while maintaining aspect ratio.
-        _model (torchvision.models.resnet.ResNet): A pretrained ResNet18 model with the last fully connected layer removed.
+        output_size (int): The size of the output feature vector.
+        _input_height (int): The height of the input image.
+        _input_width (int): The width of the input image.
+        _input_channels (int): The number of channels in the input image.
+        _conv_layers (nn.ModuleList): List of convolutional layers.
+        _pool_layers (nn.ModuleList): List of pooling layers.
+        _conv_output_height (int): The height of the output from the convolutional layers.
+        _conv_output_width (int): The width of the output from the convolutional layers.
+        _fc (nn.Linear): Fully connected layer to produce the feature vector.
     """
 
-    def __init__(self) -> None:
+    def __init__(
+        self,
+        input_shape: tuple[int, int, int],
+        output_size: int,
+        conv_channels: list[int],
+        kernel_sizes: list[int],
+        strides: list[int],
+        paddings: list[int],
+        pool_kernel_sizes: list[int],
+        pool_strides: list[int],
+    ) -> None:
         """
         The constructor for the FeatureExtractor class.
+
+        Args:
+            input_shape (tuple[int, int, int]): Shape of the input image (height, width, channels).
+            output_size (int): The desired size of the output feature vector.
+            conv_channels (list[int]): List of number of channels for each convolutional layer.
+            kernel_sizes (list[int]): List of kernel sizes for each convolutional layer.
+            strides (list[int]): List of strides for each convolutional layer.
+            paddings (list[int]): List of padding values for each convolutional layer.
+            pool_kernel_sizes (list[int]): List of kernel sizes for pooling layers.
+            pool_strides (list[int]): List of strides for pooling layers.
         """
-        super().__init__()
+        super(FeatureExtractor, self).__init__()
 
-        # Resize the smallest dimension to 224 while maintaining aspect ratio
-        self._resize = transforms.Compose(
-            [transforms.Resize(224), transforms.CenterCrop(224)]
+        # Save the output size
+        self.output_size = output_size
+
+        # The input shape has the format (height, width, channels).
+        self._input_channels, self._input_height, self._input_width = input_shape
+
+        # Define the convolutional and pooling layers
+        self._conv_layers = nn.ModuleList()
+        self._pool_layers = nn.ModuleList()
+        in_channels = self._input_channels
+        for (
+            out_channels,
+            kernel_size,
+            stride,
+            pad,
+            pool_kernel_size,
+            pool_stride,
+        ) in zip(
+            conv_channels,
+            kernel_sizes,
+            strides,
+            paddings,
+            pool_kernel_sizes,
+            pool_strides,
+        ):
+            # Convolutional layer
+            self._conv_layers.append(
+                nn.Conv2d(in_channels, out_channels, kernel_size, stride, pad)
+            )
+            # Pooling layer
+            self._pool_layers.append(nn.MaxPool2d(pool_kernel_size, pool_stride))
+            in_channels = out_channels
+
+        # Calculate the output size after the convolution and pooling layers
+        self._conv_output_height = self._input_height
+        self._conv_output_width = self._input_width
+        for stride, kernel_size, pad, pool_stride, pool_kernel_size in zip(
+            strides, kernel_sizes, paddings, pool_strides, pool_kernel_sizes
+        ):
+            # Apply convolution output size calculation
+            self._conv_output_height = (
+                self._conv_output_height + 2 * pad - kernel_size
+            ) // stride + 1
+            self._conv_output_width = (
+                self._conv_output_width + 2 * pad - kernel_size
+            ) // stride + 1
+            # Apply pooling output size calculation
+            self._conv_output_height = (
+                self._conv_output_height - pool_kernel_size
+            ) // pool_stride + 1
+            self._conv_output_width = (
+                self._conv_output_width - pool_kernel_size
+            ) // pool_stride + 1
+
+        # Define the fully connected layer to produce the feature vector
+        self._fc = nn.Linear(
+            in_channels * self._conv_output_height * self._conv_output_width,
+            output_size,
         )
-
-        # Load the pretrained model and remove the last fully connected layer
-        self._model = models.resnet18(weights=models.ResNet18_Weights.DEFAULT)
-        self._model = nn.Sequential(*list(self._model.children())[:-1])
-
-        # Set model to evaluation mode and freeze parameters
-        self._model.eval()
-        for param in self._model.parameters():
-            param.requires_grad = False
 
     def forward(self, x: Any) -> torch.Tensor:
         """
         Forward pass through the model.
 
         Args:
-            x (Any): input image.
-        """
-        if not isinstance(x, torch.Tensor):
-            x = torch.tensor(x, dtype=torch.float32)
+            x (Any): Input image tensor of shape (batch_size, channels, height, width).
 
-        # Check if the tensor has a batch dimension
-        batched = x.dim() == 4
-        if not batched:
+        Returns:
+            torch.Tensor: The output feature vector of shape (batch_size, output_size).
+        """
+        # Convert input to a tensor
+        if not isinstance(x, torch.Tensor):
+            x = torch.tensor(x, dtype=torch.float32).to(DEVICE)
+
+        # Add a batch dimension if necessary
+        added_batch_dim = False
+        if len(x.shape) == 3:
+            added_batch_dim = True
             x = x.unsqueeze(0)
 
-        # Resize with fixed aspect ratio
-        x = self._resize(x)
+        # Apply the convolutional and pooling layers
+        for conv_layer, pool_layer in zip(self._conv_layers, self._pool_layers):
+            x = F.relu(conv_layer(x))
+            x = pool_layer(x)
 
-        # Forward pass through the model
-        features = self._model(x)
-        features = features.view(features.size(0), -1)
+        # Flatten the output from the conv layers to feed into the fully connected layer
+        x = x.reshape(x.size(0), -1)
 
-        # Remove batch dimension if necessary
-        if not batched:
-            features = features.squeeze(0)
-        return features
+        # Apply the fully connected layer to get the feature vector
+        x = self._fc(x)
+
+        # Remove the batch dimension if it was added
+        if added_batch_dim:
+            x = x.squeeze(0)
+
+        return x

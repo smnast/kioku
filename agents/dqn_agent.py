@@ -5,10 +5,10 @@ This file contains the implementation of the DQN agent.
 """
 
 from agents import Agent
-from utils import Transition
 from memory import ExperienceReplayBuffer
 from functions import DoubleValue
 from schedulers import Scheduler, ExponentialDecayScheduler, StaticScheduler
+from utils import Transition, DEVICE
 from loggers import Logger
 import torch
 import torch.nn.functional as F
@@ -104,7 +104,7 @@ class DQNAgent(Agent):
             # Select the action with the highest predicted q value
             with torch.no_grad():
                 q_values = self._model.predict(observation)
-                q_values = q_values.numpy()
+                q_values = q_values.cpu().numpy()
             chosen_action = np.argmax(q_values)
 
         chosen_action = np.array([chosen_action])
@@ -120,7 +120,7 @@ class DQNAgent(Agent):
         Args:
             transition (Transition): The transition to process.
         """
-        transition = transition.filter(*self._relevant_keys)
+        transition = transition.filter(self._relevant_keys)
         self._memory.store(transition)
 
     def learn(self) -> None:
@@ -130,14 +130,14 @@ class DQNAgent(Agent):
 
         batch_transition = self._memory.sample()
         observation, action, reward, next_observation, done = batch_transition[
-            *self._relevant_keys
+            self._relevant_keys
         ]
 
-        observation = torch.tensor(observation, dtype=torch.float32)
-        action = torch.tensor(action, dtype=torch.long)
-        reward = torch.tensor(reward, dtype=torch.float32)
-        next_observation = torch.tensor(next_observation, dtype=torch.float32)
-        done = torch.tensor(done, dtype=torch.float32)
+        observation = torch.tensor(observation, dtype=torch.float32).to(DEVICE)
+        action = torch.tensor(action, dtype=torch.long).to(DEVICE)
+        reward = torch.tensor(reward, dtype=torch.float32).to(DEVICE)
+        next_observation = torch.tensor(next_observation, dtype=torch.float32).to(DEVICE)
+        done = torch.tensor(done, dtype=torch.float32).to(DEVICE)
 
         target_q_values = (
             self._model.predict(next_observation, target=True).max(dim=1).values

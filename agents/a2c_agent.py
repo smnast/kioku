@@ -5,15 +5,15 @@ This module contains the A2CAgent class,
 which is an implementation of the Advantage Actor-Critic (A2C) algorithm.
 """
 
-import torch
-import torch.nn.functional as F
-import numpy as np
 from agents import Agent
 from memory import NStepBuffer
 from functions import DiscreteActor, Value
 from schedulers import Scheduler, StaticScheduler
-from utils import Transition
+from utils import Transition, DEVICE
 from loggers import Logger
+import torch
+import torch.nn.functional as F
+import numpy as np
 
 
 class A2CAgent(Agent):
@@ -115,7 +115,7 @@ class A2CAgent(Agent):
         action_log_prob = action_log_prob.unsqueeze(-1)
 
         # Convert the action to a numpy array
-        action = action.numpy()
+        action = action.cpu().numpy()
 
         return action, {
             "action_log_prob": action_log_prob,
@@ -127,7 +127,7 @@ class A2CAgent(Agent):
         Args:
             transition (Transition): The transition to process.
         """
-        transition.filter(*self._relevant_keys)
+        transition.filter(self._relevant_keys)
         self._n_step_buffer.store(transition)
 
     def learn(self) -> None:
@@ -138,14 +138,14 @@ class A2CAgent(Agent):
         # Get the batch of transitions
         batch_transition = self._n_step_buffer.sample()
         observation, reward, next_observation, done, action_log_prob = batch_transition[
-            *self._relevant_keys
+            self._relevant_keys
         ]
 
         # Convert to tensors when necessary
-        observation = torch.tensor(observation, dtype=torch.float32)
-        reward = torch.tensor(reward, dtype=torch.float32).squeeze()
-        next_observation = torch.tensor(next_observation, dtype=torch.float32)
-        done = torch.tensor(done, dtype=torch.bool).squeeze()
+        observation = torch.tensor(observation, dtype=torch.float32).to(DEVICE)
+        reward = torch.tensor(reward, dtype=torch.float32).squeeze().to(DEVICE)
+        next_observation = torch.tensor(next_observation, dtype=torch.float32).to(DEVICE)
+        done = torch.tensor(done, dtype=torch.bool).squeeze().to(DEVICE)
 
         # Squeeze the action log probabilities
         action_log_prob = action_log_prob.squeeze()

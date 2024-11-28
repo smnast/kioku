@@ -14,7 +14,7 @@ class Environment(ABC):
 
     Attributes:
         action_size (int): The number of actions that can be taken.
-        observation_size (int): The dimension of the observation space.
+        observation_size (int | tuple[int, int, int]): The dimension of the observation space.
         continuous (bool): Whether the environment has a continuous action space.
     """
 
@@ -57,7 +57,7 @@ class Environment(ABC):
 
     @property
     @abstractmethod
-    def observation_size(self) -> int:
+    def observation_size(self) -> int | tuple[int, int, int]:
         """The dimension of the observation space."""
         pass
 

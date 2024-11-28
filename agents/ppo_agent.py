@@ -8,8 +8,9 @@ which is an implementation of the Proximal Policy Optimization (PPO) algorithm.
 from agents import Agent
 from memory import NStepBuffer
 from functions import DiscreteActor, Value
+from vision import FeatureExtractor
 from schedulers import Scheduler, StaticScheduler
-from utils import Transition
+from utils import Transition, DEVICE
 from loggers import Logger
 import torch
 import torch.nn.functional as F
@@ -23,6 +24,10 @@ class PPOAgent(Agent):
     Attributes:
         _actor (DiscreteActor): The actor network.
         _critic (Value): The critic network.
+        _feature_extractor (FeatureExtractor): The feature extractor for the agent, or None.
+        _optimizer (torch.optim.Optimizer): The shared optimizer for the actor and critic.
+        _learning_rate (Scheduler): The learning rate scheduler for the optimizer.
+        _gradient_clipping (float): The max gradient norm for the agent's models.
         _n_steps (int): The number of steps to use for n-step returns.
         _n_step_buffer (NStepBuffer): The buffer to store n-step transitions.
         _relevant_keys (list[str]): The keys to keep when processing transitions.
@@ -36,12 +41,12 @@ class PPOAgent(Agent):
 
     def __init__(
         self,
-        observation_size: int,
+        observation_size: int | tuple[int, int, int],
         num_actions: int,
         actor_hidden_sizes: list[int] = [32, 32],
         critic_hidden_sizes: list[int] = [32, 32],
-        actor_learning_rate: Scheduler = StaticScheduler(3e-4, 0),
-        critic_learning_rate: Scheduler = StaticScheduler(3e-4, 0),
+        feature_extractor: FeatureExtractor | None = None,
+        learning_rate: Scheduler = StaticScheduler(3e-4, 0),
         surrogate_clipping: float = 0.2,
         critic_coefficient: float = 0.5,
         entropy_coefficient: float = 0.01,
@@ -56,12 +61,14 @@ class PPOAgent(Agent):
         """Initialize the PPO agent.
 
         Args:
-            observation_size (int): The size of the observation space.
+            observation_size (int | tuple[int, int, int]): The size of the observation space.
+                This can be either the size of the observation vector or the shape of the image.
             num_actions (int): The number of actions in the action space.
             actor_hidden_sizes (list[int]): The sizes of the hidden layers for the actor network.
             critic_hidden_sizes (list[int]): The sizes of the hidden layers for the critic network.
-            actor_learning_rate (Scheduler): The learning rate of the actor's optimizer.
-            critic_learning_rate (Scheduler): The learning rate of the critic's optimizer.
+            feature_extractor (FeatureExtractor | None): The feature extractor for the agent.
+                If None, the agent will use the observation directly.
+            learning_rate (Scheduler): The learning rate of the shared optimizer.
             surrogate_clipping (float): The clipping value for policy ratios in the learning step.
             critic_coefficient (float): The coefficient for the critic loss.
             entropy_coefficient (float): The coefficient for the entropy term in the actor loss.
@@ -73,20 +80,24 @@ class PPOAgent(Agent):
             n_training_steps (int): The number of times to iterate over a single learning batch.
             gradient_clipping (float): The max gradient norm for the agent's models.
         """
+        if feature_extractor is not None:
+            observation_size = feature_extractor.output_size
+        self._feature_extractor = feature_extractor
+
         self._actor = DiscreteActor(
-            observation_size,
-            num_actions,
-            actor_hidden_sizes,
-            learning_rate=actor_learning_rate,
-            gradient_clipping=gradient_clipping,
+            observation_size, num_actions, actor_hidden_sizes, create_optimizer=False
         )
         self._critic = Value(
-            observation_size,
-            1,
-            critic_hidden_sizes,
-            learning_rate=critic_learning_rate,
-            gradient_clipping=gradient_clipping,
+            observation_size, 1, critic_hidden_sizes, create_optimizer=False
         )
+
+        # Create a shared optimizer for the actor, critic, and feature extractor
+        self._optimizer = torch.optim.Adam(
+            self._total_parameters(),
+            lr=learning_rate.value(0),
+        )
+        self._learning_rate = learning_rate
+        self._gradient_clipping = gradient_clipping
 
         self._n_steps = n_steps
         self._n_step_buffer = NStepBuffer(self._n_steps)
@@ -145,6 +156,9 @@ class PPOAgent(Agent):
         Returns:
             tuple[np.ndarray, dict | None]: The action to take, and the new state of the agent.
         """
+        # Extract features if a feature extractor is provided
+        if self._feature_extractor is not None:
+            observation = self._feature_extractor(observation)
 
         # Get the action from the actor
         action, action_log_prob = self._actor.act(observation)
@@ -152,7 +166,7 @@ class PPOAgent(Agent):
         action_entropy = -action_log_prob * torch.exp(action_log_prob)
 
         # Convert the action to a numpy array
-        action = action.numpy()
+        action = action.cpu().numpy()
 
         return action, {
             "action_log_prob": action_log_prob,
@@ -163,6 +177,9 @@ class PPOAgent(Agent):
         self, observation: np.ndarray, action: np.ndarray, state: dict | None = None
     ) -> torch.Tensor:
         """Computes the log probability of taking a given action in a given state.
+
+        The observation will not be processed by the feature extractor. This function assumes that
+        this has already been done.
 
         Args:
             observation (np.ndarray): The current observation.
@@ -183,7 +200,7 @@ class PPOAgent(Agent):
         Args:
             transition (Transition): The transition to process.
         """
-        transition.filter(*self._relevant_keys)
+        transition.filter(self._relevant_keys)
         self._n_step_buffer.store(transition)
 
     def learn(self) -> None:
@@ -194,19 +211,28 @@ class PPOAgent(Agent):
         # Get the batch of transitions
         batch_transition = self._n_step_buffer.sample()
         observation, action, reward, next_observation, done, action_log_prob = (
-            batch_transition[*self._relevant_keys]
+            batch_transition[self._relevant_keys]
         )
 
         # Convert to tensors when necessary
-        observation = torch.tensor(observation, dtype=torch.float32)
-        action = torch.tensor(action, dtype=torch.float32)
-        reward = torch.tensor(reward, dtype=torch.float32).squeeze()
-        next_observation = torch.tensor(next_observation, dtype=torch.float32)
-        done = torch.tensor(done, dtype=torch.bool).squeeze()
+        observation = torch.tensor(observation, dtype=torch.float32).to(DEVICE)
+        action = torch.tensor(action, dtype=torch.float32).to(DEVICE)
+        reward = torch.tensor(reward, dtype=torch.float32).squeeze().to(DEVICE)
+        next_observation = torch.tensor(next_observation, dtype=torch.float32).to(DEVICE)
+        done = torch.tensor(done, dtype=torch.bool).squeeze().to(DEVICE)
 
-        # Compute the value estimates
-        value_estimate = self._critic.predict(observation).squeeze()
-        next_value_estimate = self._critic.predict(next_observation).squeeze()
+        # Extract features if a feature extractor is provided
+        if self._feature_extractor is not None:
+            observation_features = self._feature_extractor(observation)
+            next_observation_features = self._feature_extractor(next_observation)
+
+            # Compute the value estimates
+            value_estimate = self._critic.predict(observation_features).squeeze()
+            next_value_estimate = self._critic.predict(next_observation_features).squeeze()
+        else:
+            # Compute the value estimates
+            value_estimate = self._critic.predict(observation).squeeze()
+            next_value_estimate = self._critic.predict(next_observation).squeeze()
 
         # Compute GAE advantages
         advantage = self._compute_gae(
@@ -251,6 +277,10 @@ class PPOAgent(Agent):
                     action_log_prob,
                 ) = mini_batch
 
+                # Extract features if a feature extractor is provided
+                if self._feature_extractor is not None:
+                    observation = self._feature_extractor(observation)
+
                 # Compute the new action log probabilities
                 new_action_log_prob = self._log_prob(observation, action)
                 new_action_entropy = new_action_log_prob * -torch.exp(
@@ -281,9 +311,9 @@ class PPOAgent(Agent):
                     value_estimate, returns
                 )
 
-                # Update the actor and critic
-                self._actor.optimize(actor_loss, self._step)
-                self._critic.optimize(critic_loss, self._step)
+                # Optimize the models
+                total_loss = actor_loss + critic_loss
+                self._optimize(total_loss)
 
                 # Add loss values
                 total_actor_loss += actor_loss
@@ -348,6 +378,53 @@ class PPOAgent(Agent):
             advantages[t] = advantage
 
         return advantages
+
+    def _optimize(self, loss: torch.Tensor) -> None:
+        """Optimize the actor, critic and feature extractor models.
+
+        Args:
+            loss (torch.Tensor): The loss tensor to backpropagate.
+        """
+
+        # Update the optimizer learning rate
+        self._learning_rate.adjust(self._optimizer, self._step)
+
+        # Optimize the models
+        self._optimizer.zero_grad()
+        loss.backward()
+        torch.nn.utils.clip_grad_norm_(
+            self._total_parameters(),
+            self._gradient_clipping,
+        )
+        self._optimizer.step()
+
+        # Log the learning rate
+        Logger.log_scalar(
+            "ppo_agent/learning_rate", self._learning_rate.value(self._step)
+        )
+
+        # Log the model gradients
+        average_grad_norm = np.mean(
+            [
+                p.grad.norm(2).item()
+                for p in self._total_parameters()
+            ]
+        )
+        Logger.log_scalar("ppo_agent/gradient", average_grad_norm)
+
+    def _total_parameters(self) -> list:
+        """Get a list of all the parameters in the agent's models.
+
+        Returns:
+            list[torch.Tensor]: A list of all the parameters in the agent's models.
+        """
+        actor_parameters = list(self._actor.model.parameters())
+        critic_parameters = list(self._critic.model.parameters())
+        if self._feature_extractor is not None:
+            feature_parameters = list(self._feature_extractor.parameters())
+        else:
+            feature_parameters = []
+        return actor_parameters + critic_parameters + feature_parameters
 
     def train(self) -> None:
         """Set the agent to training mode."""

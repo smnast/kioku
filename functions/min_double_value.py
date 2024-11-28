@@ -7,6 +7,7 @@ that combines two value networks, each with a critic, and takes the minimum of t
 
 from models import MLP
 from schedulers import Scheduler, StaticScheduler
+from utils import DEVICE
 from loggers import Logger
 import torch
 from torch import optim
@@ -50,11 +51,11 @@ class MinDoubleValue:
             gradient_clipping (float): The maximum gradient norm for clipping.
         """
         # Initialize the networks
-        self._online_network_1 = MLP(input_size, output_size, hidden_sizes)
-        self._online_network_2 = MLP(input_size, output_size, hidden_sizes)
+        self._online_network_1 = MLP(input_size, output_size, hidden_sizes).to(DEVICE)
+        self._online_network_2 = MLP(input_size, output_size, hidden_sizes).to(DEVICE)
 
-        self._target_network_1 = MLP(input_size, output_size, hidden_sizes)
-        self._target_network_2 = MLP(input_size, output_size, hidden_sizes)
+        self._target_network_1 = MLP(input_size, output_size, hidden_sizes).to(DEVICE)
+        self._target_network_2 = MLP(input_size, output_size, hidden_sizes).to(DEVICE)
 
         # Copy the online networks to the target networks initially
         self._copy_online_to_target()

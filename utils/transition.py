@@ -78,11 +78,11 @@ class Transition:
                 batch_data[key] = np.stack([t[key] for t in transitions], axis=0)
         return Transition(**batch_data)
 
-    def filter(self, *keys: str) -> "Transition":
+    def filter(self, keys: list[str]) -> "Transition":
         """Filters the transition object to include only the specified keys.
 
         Args:
-            *keys (str): The keys to include in the filtered transition object.
+            keys (list[str]): The keys to include in the filtered transition object.
 
         Returns:
             Transition: A new transition object with only the specified keys.
@@ -137,7 +137,7 @@ class Transition:
         return Transition(**combined_data)
 
     def __getitem__(
-        self, keys: str | tuple[str, ...]
+        self, keys: str | list[str]
     ) -> np.ndarray | tuple[np.ndarray, ...]:
         """Retrieves the data stored in the transition object.
 
@@ -153,7 +153,7 @@ class Transition:
         Raises:
             KeyError: If the key(s) are not found in the transition object.
         """
-        if isinstance(keys, tuple):
+        if isinstance(keys, list):
             return tuple(self[key] for key in keys)
 
         key = keys

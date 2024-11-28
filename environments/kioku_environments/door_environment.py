@@ -11,7 +11,7 @@ class DoorEnvironment(Environment):
 
     Attributes:
         action_size (int): The number of actions available to the agent.
-        observation_size (int): The dimensionality of the observation space.
+        observation_size (int | tuple[int, int, int]): The dimensionality of the observation space.
         continuous (bool): Whether the action space is continuous. Always False for this
             environment.
         _num_doors (int): The number of doors in the environment.
@@ -121,7 +121,7 @@ class DoorEnvironment(Environment):
         return self._num_doors + 1
 
     @property
-    def observation_size(self) -> int:
+    def observation_size(self) -> int | tuple[int, int, int]:
         """Returns the dimensionality of the observation space.
 
         Returns:

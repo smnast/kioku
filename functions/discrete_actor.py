@@ -7,6 +7,7 @@ action spaces.
 
 from models import MLP
 from schedulers import Scheduler, StaticScheduler
+from utils import DEVICE
 from loggers import Logger
 import torch
 from torch.distributions import Categorical
@@ -17,9 +18,9 @@ class DiscreteActor:
     """An implementation of an actor for discrete action spaces.
 
     Attributes:
-        _model (MLP): The model used to predict the action probabilities.
-        _learning_rate (Scheduler): The learning rate scheduler.
+        model (MLP): The model used to predict the action probabilities.
         _optimizer (torch.optim.Adam): The optimizer.
+        _learning_rate (Scheduler): The learning rate scheduler.
         _gradient_clipping (float): The maximum gradient norm for clipping
     """
 
@@ -28,6 +29,7 @@ class DiscreteActor:
         observation_size: int,
         num_actions: int,
         hidden_sizes: list[int] = [32, 32],
+        create_optimizer: bool = True,
         learning_rate: Scheduler = StaticScheduler(3e-4, 0),
         gradient_clipping: float = 0.5,
     ) -> None:
@@ -36,18 +38,25 @@ class DiscreteActor:
 
         Args:
             observation_size (int): The size of the observation space.
-            num_actions (int): The number of actions in the action space.
+            num_actions (int): The number of actions that can be taken.
             hidden_sizes (list[int]): The sizes of the hidden layers.
+            create_optimizer (bool): Whether to create the optimizer.
+            learning_rate (Scheduler): The learning rate scheduler.
+            gradient_clipping (float): The maximum gradient norm for clipping.
         """
 
         # Create the model to predict the action probabilities
-        self._model = MLP(observation_size, num_actions, hidden_sizes)
-        self._learning_rate = learning_rate
-        self._optimizer = torch.optim.Adam(
-            self._model.parameters(), lr=self._learning_rate.value(0)
-        )
-
-        self._gradient_clipping = gradient_clipping
+        self.model = MLP(observation_size, num_actions, hidden_sizes).to(DEVICE)
+        if create_optimizer:
+            self._optimizer = torch.optim.Adam(
+                self.model.parameters(), lr=self._learning_rate.value(0)
+            )
+            self._learning_rate = learning_rate
+            self._gradient_clipping = gradient_clipping
+        else:
+            self._optimizer = None
+            self._learning_rate = None
+            self._gradient_clipping = None
 
     def act(self, observation: np.ndarray) -> tuple[torch.Tensor, torch.Tensor]:
         """Select an action based on the observation.
@@ -59,7 +68,7 @@ class DiscreteActor:
             tuple[torch.Tensor, torch.Tensor]: The action and the log probability of the action.
         """
         # Get the action probabilities from the model
-        logits = self._model(observation)
+        logits = self.model(observation)
 
         # Create a distribution from the action probabilities
         action_dist = Categorical(logits=logits)
@@ -79,7 +88,7 @@ class DiscreteActor:
             torch.Tensor: The log probability of taking the action.
         """
         # Get the action probabilities from the model
-        logits = self._model(observation)
+        logits = self.model(observation)
 
         # Create a distribution from the action probabilities
         action_dist = Categorical(logits=logits)
@@ -94,6 +103,10 @@ class DiscreteActor:
             actor_loss (torch.Tensor): The loss of the actor model.
             step (int): The current step.
         """
+        # If the optimizer is not created, raise an error
+        if self._optimizer is None:
+            raise ValueError("The optimizer was not created.")
+
         # Update the optimizer learning rate
         self._learning_rate.adjust(self._optimizer, step)
 
@@ -101,7 +114,7 @@ class DiscreteActor:
         self._optimizer.zero_grad()
         loss.backward()
         torch.nn.utils.clip_grad_norm_(
-            self._model.parameters(), max_norm=self._gradient_clipping
+            self.model.parameters(), max_norm=self._gradient_clipping
         )
         self._optimizer.step()
 
@@ -112,7 +125,7 @@ class DiscreteActor:
         average_grad_norm = np.mean(
             [
                 torch.norm(param.grad).item()
-                for param in self._model.parameters()
+                for param in self.model.parameters()
                 if param.grad is not None
             ]
         )
@@ -120,10 +133,12 @@ class DiscreteActor:
 
     def train(self) -> None:
         """Set the actor model to training mode."""
-        self._model.train()
-        self._learning_rate.train()
+        self.model.train()
+        if self._learning_rate:
+            self._learning_rate.train()
 
     def test(self) -> None:
         """Set the actor model to evaluation mode."""
-        self._model.eval()
-        self._learning_rate.test()
+        self.model.eval()
+        if self._learning_rate:
+            self._learning_rate.test()

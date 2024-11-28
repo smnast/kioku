@@ -4,10 +4,8 @@ visual_gym_environment.py
 Provides a wrapper for the a visual gymnasium environment to be interacted with by an agent.
 """
 
-import torch
 import numpy as np
 from environments import Environment, GymEnvironment
-from vision import FeatureExtractor
 import cv2
 
 
@@ -18,15 +16,16 @@ class VisualGymEnvironment(Environment):
 
     Attributes:
         action_size (int): The number of actions that can be taken.
-        observation_size (int): The dimension of the observation space.
+        observation_size (int | tuple[int, int, int]): The dimension of the observation space.
         continuous (bool): Whether the environment has a continuous action space.
-        _environment_wrapper (GymEnvironment): The gymnasium environment wrapper.
-        _feature_extractor (FeatureExtractor): The feature extractor to use.
+        _environment_wrapper (GymEnvironment): The environment wrapper.
+        _greyscale (bool): Whether to convert the view to greyscale.
+        _resolution (tuple[int, int]): The resolution of the view.
         _prev_view (np.ndarray): The previous view of the environment.
-        _render (bool): Whether to render the environment in a window.
+        _render (bool): Whether to render the environment.
     """
 
-    def __init__(self, environment_name: str, render: bool = False) -> None:
+    def __init__(self, environment_name: str, render: bool = False, greyscale: bool = False, resolution: tuple[int, int] = (64, 64)) -> None:
         """Initializes the given environment
 
         Args:
@@ -38,7 +37,9 @@ class VisualGymEnvironment(Environment):
             environment_name, render_mode="rgb_array"
         )
 
-        self._feature_extractor = FeatureExtractor()
+        self._greyscale = greyscale
+        self._resolution = resolution
+
         self._prev_view = None
         self._render = render
 
@@ -50,7 +51,7 @@ class VisualGymEnvironment(Environment):
         """
         _ = self._environment_wrapper.reset()
         self._prev_view = None
-        return self._get_features()
+        return self._get_frame()
 
     def step(
         self, action: np.ndarray
@@ -73,68 +74,79 @@ class VisualGymEnvironment(Environment):
             done,
             truncated,
         ) = self._environment_wrapper.step(action)
-        return self._get_features(), reward, done, truncated
+        return self._get_frame(), reward, done, truncated
 
-    def _get_features(self) -> np.ndarray:
-        """Gets the features from the current view of the environment.
+    def _get_frame(self) -> np.ndarray:
+        """Get the current frame of the environment.
 
         Returns:
-            np.ndarray: The feature vector representing the view.
+            np.ndarray: The current frame of the environment.
         """
-        # Render the environment to an array
+        # Get the view from the environment
         view = self._environment_wrapper._environment.render()
+        
+        # Render the environment
+        if self._render:
+            bgr_view = cv2.cvtColor(view, cv2.COLOR_RGB2BGR)
+            cv2.imshow("Environment", bgr_view)
+            cv2.waitKey(1)
 
-        # Get the features from the view
-        view_transformed = self._transform(view)
-        features = self._feature_extractor(view_transformed)
+        # Transform the view
+        view = self._transform(view)
 
-        # Convert the features tensor to a numpy array
-        features = features.numpy()
+        # Render the agent's view (for debugging)
+        # _view = view.transpose(1, 2, 0)
+        # _view = np.concatenate((_view, np.zeros((*_view.shape[:2], 1), dtype=_view.dtype)), axis=2)
+        # _view = cv2.resize(_view, (1024, 1024), cv2.INTER_NEAREST)
+        # cv2.imshow("Environment", _view)
+        # cv2.waitKey(1)
 
-        return features
+        return view
 
-    def _transform(self, view: np.ndarray) -> torch.Tensor:
-        """Transform the view to a tensor suitable for the feature extractor.
+    def _transform(self, view: np.ndarray) -> np.ndarray:
+        """Apply transformations to the view.
 
         Args:
             view (np.ndarray): The view to transform.
 
         Returns:
-            torch.Tensor: The transformed view.
+            np.ndarray: The transformed view.
         """
         # Normalize the view
-        view = view / 255.0
+        view = (view / 255.0).astype(np.float32)
 
-        # Convert the view to a tensor with format (C, H, W)
-        view = torch.tensor(view, dtype=torch.float32)
-        view = view.permute(2, 0, 1)
+        # Convert the view to greyscale
+        if self._greyscale:
+            view = cv2.cvtColor(view, cv2.COLOR_RGB2GRAY)
 
-        # Add the previous view
+        # Resize the view
+        view = cv2.resize(view, self._resolution)
+
+        # Permute the dimensions
+        if view.ndim == 3:
+            view = np.transpose(view, (2, 0, 1))
+        elif view.ndim == 2:
+            view = np.expand_dims(view, axis=0)
+
+        # Stack the previous view with the current view
         if self._prev_view is None:
             self._prev_view = view
-        avg_view = (self._prev_view + view) / 2.0
-        self._prev_view = view
+        pre_stack_view = view
+        view = np.concatenate((self._prev_view, view), axis=0)
+        self._prev_view = pre_stack_view
 
-        # Render the view if necessary
-        if self._render:
-            # Convert the tensor back to a numpy array for display
-            view_np = avg_view.permute(1, 2, 0).numpy()
-            view_np = (view_np * 255).astype(np.uint8)
-            view_np = cv2.cvtColor(view_np, cv2.COLOR_RGB2BGR)
-
-            # Display the image using OpenCV
-            cv2.imshow("Environment View", view_np)
-            cv2.waitKey(1)
-
-        return avg_view
+        return view
 
     @property
     def action_size(self) -> int:
         return self._environment_wrapper.action_size
 
     @property
-    def observation_size(self) -> int:
-        return self._environment_wrapper.observation_size
+    def observation_size(self) -> int | tuple[int, int, int]:
+        # Because we are stacking frames, we multiply each input channels by 2
+        if self._greyscale:
+            return (1 * 2, *self._resolution)
+        return (3 * 2, *self._resolution)
 
     @property
     def continuous(self) -> bool:

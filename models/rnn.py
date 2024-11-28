@@ -4,6 +4,7 @@ rnn.py
 This module contains the definition of a Recurrent Neural Network (RNN) model.
 """
 
+from utils import DEVICE
 import torch
 import torch.nn.functional as F
 from torch import nn
@@ -69,7 +70,7 @@ class RNN(nn.Module):
                 the hidden state of the RNN.
         """
         if not isinstance(x, torch.Tensor):
-            x = torch.tensor(x)
+            x = torch.tensor(x).to(DEVICE)
 
         if state is None:
             state = torch.zeros(1, x.size(0), self.rnn.hidden_size)

@@ -14,7 +14,7 @@ class GymEnvironment(Environment):
 
     Attributes:
         action_size (int): The number of actions that can be taken.
-        observation_size (int): The dimension of the observation space.
+        observation_size (int | tuple[int, int, int]): The dimension of the observation space.
         continuous (bool): Whether the environment has a continuous action space.
         _environment (gym.Env): The gymnasium environment.
     """
@@ -76,7 +76,7 @@ class GymEnvironment(Environment):
         )
 
     @property
-    def observation_size(self) -> int:
+    def observation_size(self) -> int | tuple[int, int, int]:
         return self._environment.observation_space.shape[0]
 
     @property
